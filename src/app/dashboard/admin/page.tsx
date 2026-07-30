@@ -196,12 +196,6 @@ export default function AdminDashboardPage() {
           👥 Kelola Pengguna &amp; Peran
         </Link>
         <Link
-          href="/dashboard/admin/approvals"
-          className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
-        >
-          🚀 Persetujuan Kenaikan Tingkat
-        </Link>
-        <Link
           href="/dashboard/admin/announcements"
           className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
         >
@@ -221,7 +215,7 @@ export default function AdminDashboardPage() {
         </Link>
       </div>
 
-      {/* Tabel Santri & Pembimbing */}
+      {/* Tabel Santri & Penetapan Guru Pembimbing */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
           <h2 className="font-semibold text-slate-700">Penetapan Pembimbing Santri</h2>
