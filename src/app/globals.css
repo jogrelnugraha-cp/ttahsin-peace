@@ -41,3 +41,51 @@ input:-webkit-autofill {
   -webkit-text-fill-color: #0f172a !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Print styles: A4 size, professional header and margins */
+.print-header { display: none; }
+
+@page {
+  size: A4;
+  margin: 20mm; /* default margin for A4 */
+}
+
+@media print {
+  html, body {
+    width: 210mm;
+    height: 297mm;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* show / hide helpers */
+  .print-hidden { display: none !important; }
+  .print-only { display: block !important; }
+
+  /* fixed header on each printed page */
+  .print-header {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28mm;
+    padding: 6mm 20mm;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    z-index: 9999;
+  }
+
+  /* push main content below header */
+  .print-content {
+    margin-top: 34mm; /* header height + gap */
+    padding-left: 8mm;
+    padding-right: 8mm;
+  }
+
+  /* avoid breaking table rows across pages */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+}

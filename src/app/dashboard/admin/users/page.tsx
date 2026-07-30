@@ -56,6 +56,8 @@ export default function AdminUsersPage() {
   const [editTahfidz, setEditTahfidz] = useState('');
   const [editRole, setEditRole] = useState<'admin' | 'guru' | 'siswa' | 'ortu'>('siswa');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const fetchTeachers = async () => {
     const { data } = await supabase
@@ -221,6 +223,26 @@ export default function AdminUsersPage() {
     setSavingEdit(false);
   };
 
+  const handleDeleteUser = async () => {
+    if (!editingUser) return;
+
+    setDeletingUser(true);
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', editingUser.id);
+
+    if (error) {
+      alert(`Gagal menghapus pengguna: ${error.message}`);
+    } else {
+      alert(`Akun ${editingUser.full_name} berhasil dihapus.`);
+      setEditingUser(null);
+      await reloadUsers();
+    }
+    setDeletingUser(false);
+    setShowDeleteModal(false);
+  };
+
   // Update Role Pengguna secara cepat
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
@@ -249,7 +271,6 @@ export default function AdminUsersPage() {
   });
 
   const showLevelGuru = roleFilter === 'guru';
-  const showStudentDetails = roleFilter === 'siswa';
 
   // Sorting sesuai permintaan:
   // - Jika filter 'siswa': urut berdasarkan nis (numerik) dari kecil ke besar, lalu full_name
@@ -338,23 +359,13 @@ export default function AdminUsersPage() {
               <table className="w-full table-fixed text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                    <th className="p-4">Nama Lengkap</th>
+                        <th className="p-4">Nama Lengkap</th>
                     <th className="p-4">Peran (Role)</th>
-                    <th className="p-4">
-                      {showLevelGuru ? 'Level Guru' : <span className="invisible">Level Guru</span>}
-                    </th>
-                    <th className="p-4">
-                      {showStudentDetails ? 'NIS' : <span className="invisible">NIS</span>}
-                    </th>
-                    <th className="p-4">
-                      {showStudentDetails ? 'Guru Pembimbing' : <span className="invisible">Guru Pembimbing</span>}
-                    </th>
-                    <th className="p-4">
-                      {showStudentDetails ? 'Tingkat Tahsin' : <span className="invisible">Tingkat Tahsin</span>}
-                    </th>
-                    <th className="p-4">
-                      {showStudentDetails ? 'Tingkat Tahfidz' : <span className="invisible">Tingkat Tahfidz</span>}
-                    </th>
+                    {showLevelGuru && <th className="p-4">Level Guru</th>}
+                    <th className="p-4">NIS</th>
+                    <th className="p-4">Guru Pembimbing</th>
+                    <th className="p-4">Tingkat Tahsin</th>
+                    <th className="p-4">Tingkat Tahfidz</th>
                     <th className="p-4 text-center">&nbsp;</th>
                   </tr>
                 </thead>
@@ -384,31 +395,27 @@ export default function AdminUsersPage() {
                         </td>
                       )}
 
-                      {showStudentDetails && (
-                        <>
-                          <td className="p-4 text-slate-600 text-xs font-medium">
-                            {user.role === 'siswa' ? (user.nis || '-') : '-'}
-                          </td>
+                      <td className="p-4 text-slate-600 text-xs font-medium">
+                        {user.role === 'siswa' ? (user.nis || '-') : '-'}
+                      </td>
 
-                          <td className="p-4 text-slate-700 text-xs font-medium">
-                            {user.role === 'siswa' ? (
-                              user.teacher?.full_name ? (
-                                <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher.full_name}</span>
-                              ) : (
-                                <span className="text-slate-400 italic">Belum ditentukan</span>
-                              )
-                            ) : '-'}
-                          </td>
+                      <td className="p-4 text-slate-700 text-xs font-medium">
+                        {user.role === 'siswa' ? (
+                          user.teacher?.full_name ? (
+                            <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher.full_name}</span>
+                          ) : (
+                            <span className="text-slate-400 italic">Belum ditentukan</span>
+                          )
+                        ) : '-'}
+                      </td>
 
-                          <td className="p-4 text-slate-600 text-xs font-medium">
-                            {user.role === 'siswa' ? (user.tahsin_level || 'Jilid 1') : '-'}
-                          </td>
+                      <td className="p-4 text-slate-600 text-xs font-medium">
+                        {user.role === 'siswa' ? (user.tahsin_level || 'Jilid 1') : '-'}
+                      </td>
 
-                          <td className="p-4 text-slate-600 text-xs font-medium">
-                            {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
-                          </td>
-                        </>
-                      )}
+                      <td className="p-4 text-slate-600 text-xs font-medium">
+                        {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
+                      </td>
 
                       <td className="p-4 text-center flex items-center justify-center gap-2">
                         <button
@@ -603,19 +610,20 @@ export default function AdminUsersPage() {
 
       {/* Modal Edit Pengguna */}
       {editingUser && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-lg font-bold text-slate-800">Edit Profil Pengguna</h3>
-              <button
-                onClick={() => setEditingUser(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
-              >
-                ✕
-              </button>
-            </div>
+        <>
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-lg font-bold text-slate-800">Edit Profil Pengguna</h3>
+                <button
+                  onClick={() => setEditingUser(null)}
+                  className="text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <form onSubmit={handleSaveEdit} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
                 <input
@@ -706,23 +714,69 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              <div className="pt-3 flex justify-end space-x-2">
+              <div className="pt-3 flex flex-col sm:flex-row justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100"
+                  onClick={() => setShowDeleteModal(true)}
+                  disabled={savingEdit || deletingUser}
+                  className="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                 >
-                  Batal
+                  {deletingUser ? 'Menghapus...' : 'Hapus Akun'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={savingEdit}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                >
-                  {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </button>
+                <div className="flex flex-1 justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-100"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit || deletingUser}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      </>
+      )}
+
+      {showDeleteModal && editingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-rose-100 text-rose-700 p-3">
+                <span className="text-xl">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Konfirmasi Hapus Akun</h3>
+                <p className="text-sm text-slate-600 mt-2">
+                  Apakah Anda yakin ingin menghapus akun <strong>{editingUser.full_name}</strong>? Data profil akan hilang dan tidak dapat dikembalikan.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full sm:w-auto px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteUser}
+                disabled={deletingUser}
+                className="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {deletingUser ? 'Menghapus...' : 'Ya, Hapus Akun'}
+              </button>
+            </div>
           </div>
         </div>
       )}

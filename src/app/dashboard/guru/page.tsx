@@ -96,111 +96,162 @@ export default function GuruDashboardPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru / Pengajar</h1>
-          <p className="text-sm text-slate-600">
-            {teacherLevel >= 3
-              ? 'Menampilkan seluruh santri (Akses Supervisor Level 3)'
-              : 'Kelola perkembangan & presensi santri bimbingan Anda.'}
-          </p>
-        </div>
-      </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="hidden lg:block">
+          <div className="sticky top-6 space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Menu Cepat</h2>
+              <div className="space-y-3">
+                <Link
+                  href="/dashboard/guru/presensi"
+                  className="block w-full text-left bg-emerald-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                >
+                  Kelola Presensi
+                </Link>
+                <Link
+                  href="/dashboard/guru/setoran"
+                  className="block w-full text-left bg-sky-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-sky-700 transition"
+                >
+                  Catat Setoran Hafalan
+                </Link>
+                <Link
+                  href="/dashboard/guru/promotions"
+                  className="block w-full text-left bg-amber-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-amber-700 transition"
+                >
+                  Persetujuan Kenaikan
+                </Link>
+                <Link
+                  href="/dashboard/guru/reports"
+                  className="block w-full text-left bg-rose-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-rose-700 transition"
+                >
+                  Laporan Kendala
+                </Link>
+                <Link
+                  href="/dashboard/guru/mutabaah"
+                  className="block w-full text-left bg-violet-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-violet-700 transition"
+                >
+                  Cetak Mutaba&apos;ah
+                </Link>
+              </div>
+            </div>
 
-      {/* Area Tombol Navigasi Cepat */}
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/dashboard/guru/presensi"
-          className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
-        >
-          + Kelola Presensi Santri
-        </Link>
-        <Link
-          href="/dashboard/guru/setoran"
-          className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
-        >
-          + Catat Setoran Hafalan
-        </Link>
-        <Link
-          href="/dashboard/guru/promotions"
-          className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
-        >
-          🚀 Persetujuan Kenaikan Tingkat
-        </Link>
-        <Link
-          href="/dashboard/guru/reports"
-          className="bg-rose-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-rose-700 transition shadow-sm"
-        >
-          ⚠️ Laporan Kendala
-        </Link>
-      </div>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-slate-700 mb-3">Info Guru</h2>
+              <p className="text-sm text-slate-600">Level Guru: <span className="font-semibold text-slate-800">{teacherLevel}</span></p>
+              <p className="text-sm text-slate-600 mt-2">
+                {teacherLevel >= 3 ? 'Supervisor Level 3: lihat semua siswa.' : 'Kelola perkembangan siswa bimbingan Anda.'}
+              </p>
+            </div>
+          </div>
+        </aside>
 
-      {/* Tabel Data Santri */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-          <h2 className="font-semibold text-slate-700">Daftar Santri Bimbingan</h2>
-          <span className="text-xs bg-slate-200 text-slate-700 font-medium px-2.5 py-1 rounded-full">
-            Total: {students.length} Santri
-          </span>
-        </div>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
+              <p className="text-sm text-slate-600">
+                {teacherLevel >= 3
+                  ? 'Menampilkan seluruh siswa (Supervisor Level 3)'
+                  : 'Kelola perkembangan dan presensi siswa bimbingan Anda.'}
+              </p>
+            </div>
+          </div>
 
-        {loading ? (
-          <div className="p-8 text-center text-slate-500">Memuat data santri...</div>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500 bg-slate-50 border-b">
-              <tr>
-                <th className="p-4">Nama Santri</th>
-                <th className="p-4">NIS</th>
-                <th className="p-4">Tingkat Tahsin</th>
-                <th className="p-4">Tingkat Tahfidz</th>
-                <th className="p-4 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {students.length > 0 ? (
-                students.map((student) => (
-                  <tr key={student.id} className="hover:bg-slate-50">
-                    <td className="p-4 font-medium text-slate-800">{student.full_name || 'Tanpa Nama'}</td>
-                    <td className="p-4 text-slate-600">{student.nis || '-'}</td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-medium">
-                        {student.tahsin_level || student.current_level || 'Jilid 1'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 bg-sky-100 text-sky-800 rounded text-xs font-medium">
-                        {student.tahfidz_level || 'Juz 30'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center space-x-3">
-                      <Link
-                        href={`/dashboard/guru/santri/${student.id}`}
-                        className="text-xs text-blue-600 hover:underline font-semibold"
-                      >
-                        Detail
-                      </Link>
-                      <button
-                        onClick={() => openModal(student)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline"
-                      >
-                        Ajukan Kenaikan
-                      </button>
-                    </td>
+          <div className="flex flex-wrap gap-3 lg:hidden">
+            <Link
+              href="/dashboard/guru/presensi"
+              className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
+            >
+              Kelola Presensi
+            </Link>
+            <Link
+              href="/dashboard/guru/setoran"
+              className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
+            >
+              Catat Setoran Hafalan
+            </Link>
+            <Link
+              href="/dashboard/guru/promotions"
+              className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
+            >
+              Persetujuan Kenaikan
+            </Link>
+            <Link
+              href="/dashboard/guru/reports"
+              className="bg-rose-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-rose-700 transition shadow-sm"
+            >
+              Laporan Kendala
+            </Link>
+            <Link
+              href="/dashboard/guru/mutabaah"
+              className="bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition shadow-sm"
+            >
+              📄 Cetak Mutaba&apos;ah
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+              <h2 className="font-semibold text-slate-700">Daftar Santri Bimbingan</h2>
+              <span className="text-xs bg-slate-200 text-slate-700 font-medium px-2.5 py-1 rounded-full">
+                Total: {students.length} Santri
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">Memuat data santri...</div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs uppercase text-slate-500 bg-slate-50 border-b">
+                  <tr>
+                    <th className="p-4">Nama Santri</th>
+                    <th className="p-4">NIS</th>
+                    <th className="p-4">Tingkat Tahsin</th>
+                    <th className="p-4">Tingkat Tahfidz</th>
+                    <th className="p-4 text-center">Aksi</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">
-                    Belum ada santri yang ditugaskan ke bimbingan Anda.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {students.length > 0 ? (
+                    students.map((student) => (
+                      <tr key={student.id} className="hover:bg-slate-50">
+                        <td className="p-4 font-medium text-slate-800">{student.full_name || 'Tanpa Nama'}</td>
+                        <td className="p-4 text-slate-600">{student.nis || '-'}</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-medium">
+                            {student.tahsin_level || student.current_level || 'Jilid 1'}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-1 bg-sky-100 text-sky-800 rounded text-xs font-medium">
+                            {student.tahfidz_level || 'Juz 30'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex flex-wrap justify-center gap-2">
+                            <button
+                              onClick={() => openModal(student)}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline"
+                            >
+                              Ajukan Kenaikan Tingkat
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-500">
+                        Belum ada santri yang ditugaskan ke bimbingan Anda.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modal Pop-up Ajukan Kenaikan Tingkat */}
@@ -216,7 +267,6 @@ export default function GuruDashboardPage() {
                 ✕
               </button>
             </div>
-
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Santri</label>
