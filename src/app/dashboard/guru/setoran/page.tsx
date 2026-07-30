@@ -20,10 +20,14 @@ export default function InputSetoranPage() {
 
   useEffect(() => {
     const fetchStudents = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('role', 'siswa')
+        .eq('pembimbing_id', user.id)
         .order('full_name');
       if (data) setStudents(data as StudentSelect[]);
     };
@@ -33,8 +37,18 @@ export default function InputSetoranPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent || !surahOrJuz) {
-      alert('Pilih santri dan isi Surah/Juz terlebih dahulu.');
+    if (!selectedStudent) {
+      alert('Pilih santri terlebih dahulu.');
+      return;
+    }
+
+    if (type === 'tahsin') {
+      if (!surahOrJuz || !pageOrVerse) {
+        alert('Isi level tahsin dan materi tahsin terlebih dahulu.');
+        return;
+      }
+    } else if (!surahOrJuz) {
+      alert('Pilih/isi Surah/Juz terlebih dahulu.');
       return;
     }
 
@@ -66,7 +80,7 @@ export default function InputSetoranPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       {/* Header & Tombol Kembali */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Catat Setoran Hafalan</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Catatan Tahsin & Tahfidz</h1>
         <Link 
           href="/dashboard/guru" 
           className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition"
@@ -92,7 +106,7 @@ export default function InputSetoranPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Setoran</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kegiatan</label>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 cursor-pointer text-slate-700">
               <input
@@ -117,38 +131,77 @@ export default function InputSetoranPage() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Surah / Juz / Jilid</label>
-          <input
-            type="text"
-            placeholder="Contoh: Surah An-Naba&apos; atau Juz 30 / Jilid 2"
-            value={surahOrJuz}
-            onChange={(e) => setSurahOrJuz(e.target.value)}
-            className="w-full border p-2.5 rounded-lg text-slate-800"
-            required
-          />
-        </div>
+        {type === 'tahsin' ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Level Tahsin</label>
+              <input
+                type="text"
+                placeholder="Contoh: Level 1 / Level 2"
+                value={surahOrJuz}
+                onChange={(e) => setSurahOrJuz(e.target.value)}
+                className="w-full border p-2.5 rounded-lg text-slate-800"
+                required
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Ayat / Halaman</label>
-          <input
-            type="text"
-            placeholder="Contoh: Ayat 1-20 atau Halaman 12"
-            value={pageOrVerse}
-            onChange={(e) => setPageOrVerse(e.target.value)}
-            className="w-full border p-2.5 rounded-lg text-slate-800"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Materi Tahsin</label>
+              <input
+                type="text"
+                placeholder="Contoh: Mad, Ghunnah, Makharijul Huruf"
+                value={pageOrVerse}
+                onChange={(e) => setPageOrVerse(e.target.value)}
+                className="w-full border p-2.5 rounded-lg text-slate-800"
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Guru (Opsional)</label>
-          <textarea
-            placeholder="Contoh: Kelancaran baik, perhatikan tajwid."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full border p-2.5 rounded-lg h-24 text-slate-800"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Guru</label>
+              <textarea
+                placeholder="Contoh: Kelancaran baik, perhatikan tajwid."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full border p-2.5 rounded-lg h-24 text-slate-800"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Surah</label>
+              <input
+                type="text"
+                placeholder="Contoh: Surah An-Naba"
+                value={surahOrJuz}
+                onChange={(e) => setSurahOrJuz(e.target.value)}
+                className="w-full border p-2.5 rounded-lg text-slate-800"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Ayat / Halaman</label>
+              <input
+                type="text"
+                placeholder="Contoh: Ayat 1-20"
+                value={pageOrVerse}
+                onChange={(e) => setPageOrVerse(e.target.value)}
+                className="w-full border p-2.5 rounded-lg text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Guru (Opsional)</label>
+              <textarea
+                placeholder="Contoh: pertahankan konsistensi mad, perbaiki qalqalah."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full border p-2.5 rounded-lg h-24 text-slate-800"
+              />
+            </div>
+          </>
+        )}
 
         <button
           type="submit"

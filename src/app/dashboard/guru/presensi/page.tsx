@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { submitBulkPresensi, PresensiItem } from './action';
+import { getExistingPresensiForRange, submitPeriodPresensi, type PresensiItem } from './action';
 
 interface Student {
   id: string;
@@ -10,19 +11,46 @@ interface Student {
   nis?: string;
 }
 
+type AttendanceStatus = 'none' | 'hadir' | 'izin' | 'sakit' | 'alfa' | 'libur';
+
+interface AttendanceValue {
+  status: AttendanceStatus;
+  catatan: string;
+}
+
+const statusMeta: Array<{ value: AttendanceStatus; label: string; shortLabel: string; className: string }> = [
+  { value: 'none', label: 'Belum diisi', shortLabel: '', className: 'bg-white text-slate-300' },
+  { value: 'hadir', label: 'Hadir', shortLabel: '✓', className: 'bg-emerald-100 text-emerald-700' },
+  { value: 'izin', label: 'Izin', shortLabel: 'I', className: 'bg-amber-100 text-amber-700' },
+  { value: 'alfa', label: 'Alfa', shortLabel: 'A', className: 'bg-rose-100 text-rose-700' },
+  { value: 'sakit', label: 'Sakit', shortLabel: 'S', className: 'bg-slate-800 text-white' },
+  { value: 'libur', label: 'Libur', shortLabel: '-', className: 'bg-sky-100 text-sky-700' },
+];
+
+const getMonthLabel = (year: number, month: number) => new Date(year, month - 1, 1).toLocaleDateString('id-ID', {
+  month: 'long',
+  year: 'numeric',
+});
+
 export default function PresensiKelasPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
 
-  // Form State
-  const [pertemuanKe, setPertemuanKe] = useState<number>(1);
-  const [tanggal, setTanggal] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
-  const [attendanceMap, setAttendanceMap] = useState<
-    Record<string, { status: 'hadir' | 'izin' | 'sakit' | 'alfa'; catatan: string }>
-  >({});
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, Record<string, AttendanceValue>>>({});
+
+  const dateList = useMemo(() => {
+    const dates: string[] = [];
+    const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+    for (let day = 1; day <= lastDay; day += 1) {
+      const date = new Date(selectedYear, selectedMonth - 1, day);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      dates.push(value);
+    }
+    return dates;
+  }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     async function loadData() {
@@ -31,7 +59,6 @@ export default function PresensiKelasPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Ambil data santri bimbingan guru ini
         const { data: list } = await supabase
           .from('profiles')
           .select('id, full_name, nis')
@@ -42,55 +69,101 @@ export default function PresensiKelasPage() {
         const studentList = list || [];
         setStudents(studentList);
 
-        // Set default status semua santri menjadi 'hadir'
-        const initialMap: Record<string, { status: 'hadir' | 'izin' | 'sakit' | 'alfa'; catatan: string }> = {};
-        studentList.forEach((st) => {
-          initialMap[st.id] = { status: 'hadir', catatan: '' };
+        const startDate = dateList[0];
+        const endDate = dateList[dateList.length - 1];
+        const existingEntries = startDate && endDate ? await getExistingPresensiForRange(startDate, endDate) : [];
+
+        const nextMap: Record<string, Record<string, AttendanceValue>> = {};
+        studentList.forEach((student) => {
+          nextMap[student.id] = {};
+          dateList.forEach((date) => {
+            nextMap[student.id][date] = { status: 'none', catatan: '' };
+          });
         });
-        setAttendanceMap(initialMap);
+
+        existingEntries.forEach((entry) => {
+          const student = nextMap[entry.student_id];
+          if (student && entry.tanggal) {
+            student[entry.tanggal] = {
+              status: entry.status || 'hadir',
+              catatan: entry.catatan || '',
+            };
+          }
+        });
+
+        setAttendanceMap(nextMap);
       } catch (err) {
-        console.error('Gagal memuat santri:', err);
+        console.error('Gagal memuat absensi:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
-  }, []);
+    if (dateList.length > 0) {
+      loadData();
+    }
+  }, [dateList]);
 
-  // Handler Ubah Status Per Santri
-  const handleStatusChange = (studentId: string, status: 'hadir' | 'izin' | 'sakit' | 'alfa') => {
+  const handleStatusToggle = (studentId: string, dateKey: string) => {
+    setAttendanceMap((prev) => {
+      const current = prev[studentId]?.[dateKey] || { status: 'none', catatan: '' };
+      const nextStatus = current.status === 'none'
+        ? 'hadir'
+        : current.status === 'hadir'
+        ? 'izin'
+        : current.status === 'izin'
+        ? 'alfa'
+        : current.status === 'alfa'
+        ? 'sakit'
+        : current.status === 'sakit'
+        ? 'libur'
+        : 'none';
+
+      return {
+        ...prev,
+        [studentId]: {
+          ...(prev[studentId] || {}),
+          [dateKey]: { ...current, status: nextStatus },
+        },
+      };
+    });
+  };
+
+  const handleCatatanChange = (studentId: string, dateKey: string, catatan: string) => {
     setAttendanceMap((prev) => ({
       ...prev,
-      [studentId]: { ...prev[studentId], status },
+      [studentId]: {
+        ...(prev[studentId] || {}),
+        [dateKey]: { ...(prev[studentId]?.[dateKey] || { status: 'hadir', catatan: '' }), catatan },
+      },
     }));
   };
 
-  // Handler Ubah Catatan
-  const handleCatatanChange = (studentId: string, catatan: string) => {
-    setAttendanceMap((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], catatan },
-    }));
-  };
-
-  // Submit Presensi
   const handleSubmit = async () => {
-    if (students.length === 0) {
+    if (students.length === 0 || dateList.length === 0) {
       alert('Tidak ada santri untuk diabsen.');
       return;
     }
 
     setSaving(true);
     try {
-      const records: PresensiItem[] = students.map((st) => ({
-        student_id: st.id,
-        status: attendanceMap[st.id]?.status || 'hadir',
-        catatan: attendanceMap[st.id]?.catatan || '',
-      }));
+      const records: Array<PresensiItem & { tanggal: string }> = [];
+      students.forEach((student) => {
+        dateList.forEach((dateKey) => {
+          const entry = attendanceMap[student.id]?.[dateKey];
+          if (entry && entry.status !== 'none') {
+            records.push({
+              student_id: student.id,
+              tanggal: dateKey,
+              status: entry.status,
+              catatan: entry.catatan || '',
+            });
+          }
+        });
+      });
 
-      await submitBulkPresensi(pertemuanKe, tanggal, records);
-      alert(`Presensi Pertemuan Ke-${pertemuanKe} berhasil disimpan!`);
+      await submitPeriodPresensi(records);
+      alert(`Absensi untuk ${getMonthLabel(selectedYear, selectedMonth)} berhasil disimpan.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan';
       alert(`Gagal menyimpan: ${msg}`);
@@ -100,118 +173,134 @@ export default function PresensiKelasPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Presensi Kelas Santri</h1>
-        <p className="text-sm text-slate-600">Pilih status kehadiran santri untuk pertemuan kelas hari ini.</p>
-      </div>
-
-      {/* Form Informasi Pertemuan */}
-      <div className="bg-white p-4 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Pertemuan Ke-</label>
-          <input
-            type="number"
-            min={1}
-            value={pertemuanKe}
-            onChange={(e) => setPertemuanKe(parseInt(e.target.value) || 1)}
-            className="w-full px-3 py-2 border rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-          />
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Link href="/dashboard/guru" className="mb-2 inline-flex items-center text-sm font-semibold text-emerald-700 hover:underline">
+                ← Kembali ke Dashboard
+              </Link>
+              <h1 className="text-2xl font-bold text-slate-800">Lembar Absensi Kelas</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Format tabel absensi penuh untuk satu bulan atau satu semester, disusun berdasarkan urutan siswa bimbingan.
+              </p>
+            </div>
+            <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Format offline seperti daftar kelas
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Pertemuan</label>
-          <input
-            type="date"
-            value={tanggal}
-            onChange={(e) => setTanggal(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-          />
-        </div>
-      </div>
 
-      {/* Tabel Absensi Santri */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-        {loading ? (
-          <div className="p-8 text-center text-slate-500">Memuat daftar santri...</div>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
-              <tr>
-                <th className="p-4">Nama Santri</th>
-                <th className="p-4 text-center">Status Kehadiran</th>
-                <th className="p-4">Catatan / Keterangan</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {students.length > 0 ? (
-                students.map((student) => {
-                  const currentStatus = attendanceMap[student.id]?.status || 'hadir';
-                  return (
-                    <tr key={student.id} className="hover:bg-slate-50">
-                      <td className="p-4 font-medium text-slate-800">
-                        {student.full_name}
-                        {student.nis && <span className="block text-xs text-slate-400">NIS: {student.nis}</span>}
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="inline-flex rounded-md shadow-sm gap-1" role="group">
-                          {(['hadir', 'izin', 'sakit', 'alfa'] as const).map((st) => {
-                            const activeColors = {
-                              hadir: 'bg-emerald-600 text-white',
-                              izin: 'bg-amber-500 text-white',
-                              sakit: 'bg-blue-500 text-white',
-                              alfa: 'bg-rose-600 text-white',
-                            };
-                            const isSelected = currentStatus === st;
-                            return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex-1 text-center text-sm font-semibold text-slate-700">
+              {getMonthLabel(selectedYear, selectedMonth)}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
+                  <option key={month} value={month}>{getMonthLabel(selectedYear, month)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {statusMeta.map((item) => (
+              <div key={item.value} className={`rounded-full px-3 py-1 text-xs font-semibold ${item.className}`}>
+                {item.shortLabel} = {item.label}
+              </div>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-center text-sm text-slate-500">Memuat daftar absensi...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-xs text-slate-700">
+                <thead>
+                  <tr>
+                    <th className="min-w-[180px] border border-slate-200 bg-slate-50 p-2 text-left font-semibold">Nama Santri</th>
+                    {dateList.map((dateKey) => {
+                      const date = new Date(dateKey);
+                      return (
+                        <th key={dateKey} className="min-w-[46px] border border-slate-200 bg-slate-50 p-1 text-center">
+                          <div className="font-semibold">{date.getDate()}</div>
+                          <div className="text-[10px] uppercase text-slate-400">{date.toLocaleDateString('id-ID', { weekday: 'short' })}</div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.length > 0 ? (
+                    students.map((student, index) => (
+                      <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                        <td className="border border-slate-200 p-2 font-semibold text-slate-700">
+                          <div>{student.full_name}</div>
+                          <div className="text-[10px] text-slate-400">{student.nis || '-'}</div>
+                        </td>
+                        {dateList.map((dateKey) => {
+                          const entry = attendanceMap[student.id]?.[dateKey] || { status: 'none', catatan: '' };
+                          const meta = statusMeta.find((item) => item.value === entry.status) || statusMeta[0];
+                          return (
+                            <td key={`${student.id}-${dateKey}`} className="border border-slate-200 p-1 text-center">
                               <button
-                                key={st}
                                 type="button"
-                                onClick={() => handleStatusChange(student.id, st)}
-                                className={`px-3 py-1.5 text-xs font-semibold uppercase rounded transition ${
-                                  isSelected
-                                    ? activeColors[st]
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
+                                onClick={() => handleStatusToggle(student.id, dateKey)}
+                                className={`flex h-8 w-8 items-center justify-center rounded-md border border-slate-100 text-sm font-bold ${meta.className}`}
+                                title={`${student.full_name} - ${dateKey}`}
                               >
-                                {st}
+                                {meta.shortLabel}
                               </button>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <input
-                          type="text"
-                          placeholder="Contoh: Sakit demam / Izin keluarga"
-                          value={attendanceMap[student.id]?.catatan || ''}
-                          onChange={(e) => handleCatatanChange(student.id, e.target.value)}
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded text-xs text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                        />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={dateList.length + 1} className="border border-slate-200 p-6 text-center text-sm text-slate-500">
+                        Belum ada santri bimbingan untuk di-absen.
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={3} className="p-8 text-center text-slate-500">
-                    Belum ada santri bimbingan untuk di-absen.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-      {/* Tombol Simpan Presensi */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSubmit}
-          disabled={saving || students.length === 0}
-          className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition shadow-md disabled:opacity-50"
-        >
-          {saving ? 'Menyimpan...' : 'Simpan Presensi Pertemuan'}
-        </button>
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-slate-500">
+            Klik setiap kotak untuk mengubah status kehadiran. Simpan untuk memperbarui lembar absensi periode yang dipilih.
+          </p>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || students.length === 0}
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? 'Menyimpan...' : 'Simpan Absensi'}
+          </button>
+        </div>
       </div>
     </div>
   );

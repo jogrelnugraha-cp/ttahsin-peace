@@ -29,13 +29,26 @@ export async function submitPromotionRequest(
     if (typeof studentIdOrPayload === 'object' && studentIdOrPayload !== null) {
       payload = studentIdOrPayload;
     } else {
-      // Jika dipanggil dengan 3+ argumen terpisah
+      const normalizedType = type && ['tahsin', 'tahfidz'].includes((type || '').toLowerCase())
+        ? type.toLowerCase()
+        : 'tahsin';
+
+      const normalizedTargetLevel = type && !['tahsin', 'tahfidz'].includes((type || '').toLowerCase())
+        ? type
+        : targetLevel || '';
+      const normalizedNotes = type && !['tahsin', 'tahfidz'].includes((type || '').toLowerCase())
+        ? targetLevel || ''
+        : notes || '';
+      const normalizedCurrentLevel = type && !['tahsin', 'tahfidz'].includes((type || '').toLowerCase())
+        ? notes || ''
+        : currentLevel || '';
+
       payload = {
         student_id: studentIdOrPayload,
-        type: type || 'tahsin',
-        target_level: targetLevel || '',
-        notes: notes || '',
-        current_level: currentLevel || '',
+        type: normalizedType as 'tahsin' | 'tahfidz',
+        target_level: normalizedTargetLevel,
+        notes: normalizedNotes,
+        current_level: normalizedCurrentLevel,
       };
     }
 

@@ -12,80 +12,40 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Menjamin seluruh elemen form memiliki teks gelap dan latar terang */
 input, select, textarea {
-  color: #0f172a !important; /* Tailwind text-slate-900 */
+  color: #0f172a !important;
   background-color: #ffffff !important;
 }
 
-/* Mengatur warna teks placeholder agar tetap samar namun terbaca */
-input::placeholder, textarea::placeholder {
-  color: #94a3b8 !important; /* Tailwind text-slate-400 */
-}
-
-/* Memastikan warna saat browser melalukan auto-fill tetap jelas */
-input:-webkit-autofill {
-  -webkit-text-fill-color: #0f172a !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/* Print styles: A4 size, professional header and margins */
-.print-header { display: none; }
-
+/* Print Settings khusus agar 1 lembar pas */
 @page {
-  size: A4;
-  margin: 20mm; /* default margin for A4 */
+  size: A4 portrait;
+  margin: 10mm 12mm; /* Margin tipis agar muat banyak */
 }
 
 @media print {
   html, body {
-    width: 210mm;
-    height: 297mm;
-    background: #ffffff;
-    color: #000000;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  /* show / hide helpers */
-  .print-hidden { display: none !important; }
-  .print-only { display: block !important; }
-
-  /* fixed header on each printed page */
-  .print-header {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 28mm;
-    padding: 6mm 20mm;
-    border-bottom: 1px solid #e2e8f0;
-    background: #ffffff;
-    z-index: 9999;
+  .print-hidden {
+    display: none !important;
   }
 
-  /* push main content below header */
-  .print-content {
-    margin-top: 34mm; /* header height + gap */
-    padding-left: 8mm;
-    padding-right: 8mm;
+  /* Cegah pemotongan halaman tidak sengaja */
+  div, table {
+    page-break-inside: avoid;
   }
-
-  /* avoid breaking table rows across pages */
-  table { page-break-inside: auto; }
-  tr    { page-break-inside: avoid; page-break-after: auto; }
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
 }

@@ -34,10 +34,17 @@ export default function GuruStudentReportsPage() {
     const fetchData = async () => {
       setLoading(true);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       const { data: studentData } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('role', 'siswa')
+        .eq('pembimbing_id', user.id)
         .order('full_name', { ascending: true });
 
       if (studentData) {
@@ -45,10 +52,14 @@ export default function GuruStudentReportsPage() {
         if (studentData.length > 0) setStudentId(studentData[0].id);
       }
 
-      const { data: reportData } = await supabase
-        .from('student_reports')
-        .select('*, student:student_id (full_name)')
-        .order('created_at', { ascending: false });
+      const studentIds = (studentData || []).map((item) => item.id);
+      const { data: reportData } = studentIds.length > 0
+        ? await supabase
+            .from('student_reports')
+            .select('*, student:student_id (full_name)')
+            .in('student_id', studentIds)
+            .order('created_at', { ascending: false })
+        : { data: [] };
 
       if (reportData) {
         setReports(reportData as unknown as StudentReport[]);
@@ -61,9 +72,39 @@ export default function GuruStudentReportsPage() {
   }, []);
 
   const refreshReports = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: studentData } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'siswa')
+      .eq('pembimbing_id', user.id);
+
+    const studentIds = (studentData || []).map((item) => item.id);
+
+    if (studentIds.length === 0) {
+      setStudents([]);
+      setReports([]);
+      return;
+    }
+
+    const { data: studentsList } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'siswa')
+      .eq('pembimbing_id', user.id)
+      .order('full_name', { ascending: true });
+
+    if (studentsList) {
+      setStudents(studentsList as Student[]);
+      if (studentsList.length > 0) setStudentId(studentsList[0].id);
+    }
+
     const { data } = await supabase
       .from('student_reports')
       .select('*, student:student_id (full_name)')
+      .in('student_id', studentIds)
       .order('created_at', { ascending: false });
     if (data) setReports(data as unknown as StudentReport[]);
   };

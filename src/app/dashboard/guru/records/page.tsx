@@ -45,13 +45,45 @@ export default function GuruDailyRecordsPage() {
   const [grade, setGrade] = useState('Lancar');
   const [notes, setNotes] = useState('');
 
-  const fetchRecords = useCallback(async () => {
+  const fetchRecords = useCallback(async (teacherId?: string) => {
+    if (!teacherId) {
+      setRecords([]);
+      return;
+    }
+
+    const { data: studentData } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'siswa')
+      .eq('pembimbing_id', teacherId);
+
+    const studentIds = (studentData || []).map((item) => item.id);
+
+    if (studentIds.length === 0) {
+      setStudents([]);
+      setRecords([]);
+      return;
+    }
+
+    const { data: studentList } = await supabase
+      .from('profiles')
+      .select('id, full_name, tahsin_level, tahfidz_level')
+      .eq('role', 'siswa')
+      .eq('pembimbing_id', teacherId)
+      .order('full_name', { ascending: true });
+
+    if (studentList) {
+      setStudents(studentList as Student[]);
+      if (studentList.length > 0) setStudentId(studentList[0].id);
+    }
+
     const { data: recordData } = await supabase
       .from('daily_records')
       .select(`
         *,
         student:student_id (full_name)
       `)
+      .in('student_id', studentIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(10);
@@ -65,19 +97,13 @@ export default function GuruDailyRecordsPage() {
     const fetchInitialData = async () => {
       setLoading(true);
 
-      // Ambil daftar santri
-      const { data: studentData } = await supabase
-        .from('profiles')
-        .select('id, full_name, tahsin_level, tahfidz_level')
-        .eq('role', 'siswa')
-        .order('full_name', { ascending: true });
-
-      if (studentData) {
-        setStudents(studentData as Student[]);
-        if (studentData.length > 0) setStudentId(studentData[0].id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
       }
 
-      await fetchRecords();
+      await fetchRecords(user.id);
       setLoading(false);
     };
 
@@ -125,7 +151,9 @@ export default function GuruDailyRecordsPage() {
       setTahsinMaterial('');
       setTahfidzMaterial('');
       setNotes('');
-      fetchRecords();
+      if (user) {
+        fetchRecords(user.id);
+      }
     }
 
     setSubmitting(false);
@@ -137,7 +165,10 @@ export default function GuruDailyRecordsPage() {
     const { error } = await supabase.from('daily_records').delete().eq('id', id);
 
     if (!error) {
-      fetchRecords();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        fetchRecords(user.id);
+      }
     } else {
       alert(`Gagal menghapus: ${error.message}`);
     }

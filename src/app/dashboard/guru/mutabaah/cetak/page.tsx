@@ -1,15 +1,20 @@
+'use client';
+
+import { use } from 'react';
 import { redirect } from 'next/navigation';
 
 interface PrintRedirectProps {
-  searchParams?: {
+  searchParams?: Promise<{
     studentId?: string;
     program?: string;
-  };
+  }>;
 }
 
 export default function PrintRedirectPage({ searchParams }: PrintRedirectProps) {
-  const studentId = searchParams?.studentId;
-  const program = searchParams?.program;
+  const params = use(searchParams || Promise.resolve({ studentId: '', program: '' })) as { studentId?: string; program?: string };
+  const studentId = params?.studentId;
+  const program = params?.program;
+
 
   if (!studentId) {
     return (

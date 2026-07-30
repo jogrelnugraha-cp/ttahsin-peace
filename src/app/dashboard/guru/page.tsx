@@ -15,10 +15,17 @@ interface StudentProfile {
   pembimbing_id?: string;
 }
 
+interface TeacherOption {
+  id: string;
+  full_name: string;
+  teacher_level: number;
+}
+
 export default function GuruDashboardPage() {
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [teacherLevel, setTeacherLevel] = useState<number>(1);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   // State Modal Kenaikan Tingkat
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -26,6 +33,8 @@ export default function GuruDashboardPage() {
   const [program, setProgram] = useState<'Tahsin' | 'Tahfidz'>('Tahsin');
   const [targetLevel, setTargetLevel] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [selectedApprover, setSelectedApprover] = useState<string>('');
+  const [availableApprovers, setAvailableApprovers] = useState<TeacherOption[]>([]);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
@@ -45,6 +54,7 @@ export default function GuruDashboardPage() {
 
         const currentLvl = teacherProfile?.teacher_level || 1;
         setTeacherLevel(currentLvl);
+        setCurrentUserId(user.id);
 
         // 3. Query Santri (Filter berdasarkan pembimbing_id jika < Level 3)
         let query = supabase.from('profiles').select('*').eq('role', 'siswa');
@@ -68,10 +78,31 @@ export default function GuruDashboardPage() {
   }, []);
 
   // Fungsi Buka Modal
-  const openModal = (student: StudentProfile) => {
+  const openModal = async (student: StudentProfile) => {
     setEditingStudent(student);
     setTargetLevel('');
     setNotes('');
+    setSelectedApprover('');
+
+    // Fetch higher-level teachers based on current teacher level
+    const nextLevel = teacherLevel + 1;
+    const { data: higherLevelTeachers, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, teacher_level')
+      .eq('role', 'guru')
+      .eq('teacher_level', nextLevel)
+      .order('full_name');
+
+    if (!error && higherLevelTeachers) {
+      setAvailableApprovers(higherLevelTeachers as TeacherOption[]);
+      if (higherLevelTeachers.length > 0) {
+        setSelectedApprover(higherLevelTeachers[0].id);
+      }
+    } else {
+      setAvailableApprovers([]);
+      console.warn('Gagal memuat guru tingkat atasnya');
+    }
+
     setIsModalOpen(true);
   };
 
@@ -82,10 +113,29 @@ export default function GuruDashboardPage() {
       return;
     }
 
+    if (!selectedApprover) {
+      alert('Harap pilih guru penyetuju terlebih dahulu.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await submitPromotionRequest(editingStudent.id, targetLevel, `${program}: ${notes}`);
-      alert(`Pengajuan kenaikan tingkat untuk ${editingStudent.full_name} berhasil dikirim!`);
+      const result = await submitPromotionRequest({
+        student_id: editingStudent.id,
+        teacher_id: selectedApprover,
+        type: program.toLowerCase() as 'tahsin' | 'tahfidz',
+        target_level: targetLevel,
+        notes: notes,
+        current_level: program === 'Tahsin'
+          ? editingStudent.tahsin_level || editingStudent.current_level || ''
+          : editingStudent.tahfidz_level || editingStudent.current_level || '',
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Gagal mengirim pengajuan');
+      }
+
+      alert(`Pengajuan kenaikan tingkat untuk ${editingStudent.full_name} berhasil dikirim ke guru penyetuju!`);
       setIsModalOpen(false);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan';
@@ -113,7 +163,13 @@ export default function GuruDashboardPage() {
                   href="/dashboard/guru/setoran"
                   className="block w-full text-left bg-sky-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-sky-700 transition"
                 >
-                  Catat Setoran Hafalan
+                  Catatan Tahsin & Tahfidz
+                </Link>
+                <Link
+                  href="/dashboard/guru/materials"
+                  className="block w-full text-left bg-teal-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-teal-700 transition"
+                >
+                  Upload Materi
                 </Link>
                 <Link
                   href="/dashboard/guru/promotions"
@@ -169,7 +225,13 @@ export default function GuruDashboardPage() {
               href="/dashboard/guru/setoran"
               className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
             >
-              Catat Setoran Hafalan
+              Catatan Tahsin & Tahfidz
+            </Link>
+            <Link
+              href="/dashboard/guru/materials"
+              className="bg-teal-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition shadow-sm"
+            >
+              Upload Materi
             </Link>
             <Link
               href="/dashboard/guru/promotions"
@@ -316,6 +378,29 @@ export default function GuruDashboardPage() {
                   onChange={(e) => setTargetLevel(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Guru Penyetuju</label>
+                {availableApprovers.length === 0 ? (
+                  <div className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600">
+                    Tidak ada guru tingkat {teacherLevel + 1} tersedia
+                  </div>
+                ) : (
+                  <select
+                    value={selectedApprover}
+                    onChange={(e) => setSelectedApprover(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    required
+                  >
+                    <option value="">-- Pilih Guru Penyetuju --</option>
+                    {availableApprovers.map((teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.full_name} (Level {teacher.teacher_level})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

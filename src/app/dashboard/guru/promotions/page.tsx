@@ -24,6 +24,13 @@ interface CurrentTeacher {
   teacher_level: number;
 }
 
+interface ProfileSummary {
+  id: string;
+  full_name: string | null;
+  nis?: string | null;
+  teacher_level?: number | null;
+}
+
 export default function PromotionsPage() {
   const [currentTeacher, setCurrentTeacher] = useState<CurrentTeacher | null>(null);
   const [requests, setRequests] = useState<PromotionRequest[]>([]);
@@ -58,39 +65,56 @@ export default function PromotionsPage() {
         });
 
         // 3. Ambil seluruh data pengajuan kenaikan level
-        const { data: rawRequests, error } = await supabase
+        const { data: rawRequests, error: requestsError } = await supabase
           .from('promotion_requests')
-          .select(`
-            id,
-            student_id,
-            teacher_id,
-            type,
-            current_level,
-            target_level,
-            notes,
-            status,
-            created_at,
-            student:student_id(full_name, nis),
-            teacher:teacher_id(full_name, teacher_level)
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (requestsError) {
+          console.warn('Tidak dapat memuat pengajuan dengan join, tampilkan data kosong.', requestsError);
+          setRequests([]);
+          return;
+        }
+
         if (!isMounted) return;
 
-        const formatted: PromotionRequest[] = (rawRequests || []).map((item) => ({
-          id: item.id,
-          student_id: item.student_id,
-          teacher_id: item.teacher_id,
-          type: item.type,
-          current_level: item.current_level,
-          target_level: item.target_level,
-          notes: item.notes,
-          status: item.status,
-          created_at: item.created_at,
-          student: item.student as unknown as { full_name: string; nis?: string },
-          teacher: item.teacher as unknown as { full_name: string; teacher_level?: number },
-        }));
+        const studentIds = [...new Set((rawRequests || []).map((item) => item.student_id).filter(Boolean))] as string[];
+        const teacherIds = [...new Set((rawRequests || []).map((item) => item.teacher_id).filter(Boolean))] as string[];
+
+        const [studentProfilesResult, teacherProfilesResult] = await Promise.all([
+          studentIds.length > 0
+            ? supabase.from('profiles').select('id, full_name, nis').in('id', studentIds)
+            : Promise.resolve({ data: [] as ProfileSummary[], error: null }),
+          teacherIds.length > 0
+            ? supabase.from('profiles').select('id, full_name, teacher_level').in('id', teacherIds)
+            : Promise.resolve({ data: [] as ProfileSummary[], error: null }),
+        ]);
+
+        const studentMap = new Map<string, ProfileSummary>((studentProfilesResult.data || []).map((profile) => [profile.id, profile]));
+        const teacherMap = new Map<string, ProfileSummary>((teacherProfilesResult.data || []).map((profile) => [profile.id, profile]));
+
+        const formatted: PromotionRequest[] = (rawRequests || []).map((item) => {
+          const studentProfile = studentMap.get(item.student_id);
+          const teacherProfile = teacherMap.get(item.teacher_id);
+
+          return {
+            id: item.id,
+            student_id: item.student_id,
+            teacher_id: item.teacher_id,
+            type: item.type as 'tahsin' | 'tahfidz',
+            current_level: item.current_level,
+            target_level: item.target_level,
+            notes: item.notes,
+            status: item.status as 'pending' | 'approved' | 'rejected',
+            created_at: item.created_at,
+            student: studentProfile
+              ? { full_name: studentProfile.full_name || 'Santri', nis: studentProfile.nis || undefined }
+              : undefined,
+            teacher: teacherProfile
+              ? { full_name: teacherProfile.full_name || 'Guru', teacher_level: teacherProfile.teacher_level || 1 }
+              : undefined,
+          };
+        });
 
         // 4. Filter data berdasarkan Hirarki Level Guru
         let filteredRequests: PromotionRequest[] = [];
