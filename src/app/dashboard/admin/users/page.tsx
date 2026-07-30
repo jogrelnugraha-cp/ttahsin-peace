@@ -10,6 +10,7 @@ interface Profile {
   role: 'admin' | 'guru' | 'siswa' | 'ortu';
   nis?: string;
   teacher_id?: string | null;
+  teacher_level?: number;
   tahsin_level?: string;
   tahfidz_level?: string;
   created_at: string;
@@ -26,7 +27,7 @@ export default function AdminUsersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<'siswa' | 'guru' | 'admin'>('siswa');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // State Modal Tambah Pengguna
@@ -41,6 +42,7 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState<'siswa' | 'guru' | 'admin'>('siswa');
   const [newTeacherId, setNewTeacherId] = useState('');
   const [newNis, setNewNis] = useState('');
+  const [newTeacherLevel, setNewTeacherLevel] = useState(1);
   const [newTahsin, setNewTahsin] = useState('Jilid 1');
   const [newTahfidz, setNewTahfidz] = useState('Juz 30');
 
@@ -49,6 +51,7 @@ export default function AdminUsersPage() {
   const [editName, setEditName] = useState('');
   const [editTeacherId, setEditTeacherId] = useState('');
   const [editNis, setEditNis] = useState('');
+  const [editTeacherLevel, setEditTeacherLevel] = useState(1);
   const [editTahsin, setEditTahsin] = useState('');
   const [editTahfidz, setEditTahfidz] = useState('');
   const [editRole, setEditRole] = useState<'admin' | 'guru' | 'siswa' | 'ortu'>('siswa');
@@ -132,14 +135,15 @@ export default function AdminUsersPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        const profilePayload: Record<string, string | null> = {
+        const profilePayload: Record<string, any> = {
           id: authData.user.id,
           full_name: newName,
           role: newRole,
-              nis: newRole === 'siswa' ? (newNis || null) : null,
-              tahsin_level: newRole === 'siswa' ? newTahsin : null,
-              tahfidz_level: newRole === 'siswa' ? newTahfidz : null,
-              teacher_id: newRole === 'siswa' && newTeacherId ? newTeacherId : null,
+          nis: newRole === 'siswa' ? (newNis || null) : null,
+          tahsin_level: newRole === 'siswa' ? newTahsin : null,
+          tahfidz_level: newRole === 'siswa' ? newTahfidz : null,
+          teacher_id: newRole === 'siswa' && newTeacherId ? newTeacherId : null,
+          teacher_level: newRole === 'guru' ? newTeacherLevel : null,
         };
 
         const { error: profileError } = await supabase
@@ -154,7 +158,7 @@ export default function AdminUsersPage() {
       alert(`Berhasil menambahkan ${newRole} baru (${newName})!`);
 
       setShowModal(false);
-      setRoleFilter('all');
+      setRoleFilter('siswa');
       setSearchQuery('');
       setNewName('');
       setNewEmail('');
@@ -162,6 +166,7 @@ export default function AdminUsersPage() {
       setNewRole('siswa');
       setNewTeacherId('');
       setNewNis('');
+      setNewTeacherLevel(1);
       setNewTahsin('Jilid 1');
       setNewTahfidz('Juz 30');
 
@@ -179,6 +184,7 @@ export default function AdminUsersPage() {
     setEditName(user.full_name || '');
     setEditTeacherId(user.teacher_id || '');
     setEditNis(user.nis || '');
+    setEditTeacherLevel(user.teacher_level || 1);
     setEditTahsin(user.tahsin_level || 'Jilid 1');
     setEditTahfidz(user.tahfidz_level || 'Juz 30');
     setEditRole(user.role);
@@ -190,13 +196,14 @@ export default function AdminUsersPage() {
     if (!editingUser) return;
     setSavingEdit(true);
 
-    const updatePayload: Record<string, string | null> = {
+    const updatePayload: Record<string, any> = {
       full_name: editName,
       role: editRole,
       nis: editRole === 'siswa' ? (editNis || null) : null,
       tahsin_level: editRole === 'siswa' ? editTahsin : null,
       tahfidz_level: editRole === 'siswa' ? editTahfidz : null,
       teacher_id: editRole === 'siswa' && editTeacherId ? editTeacherId : null,
+      teacher_level: editRole === 'guru' ? editTeacherLevel : null,
     };
 
     const { error } = await supabase
@@ -217,9 +224,13 @@ export default function AdminUsersPage() {
   // Update Role Pengguna secara cepat
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
+    const payload: Record<string, any> = { role: newRole };
+    if (newRole === 'guru') payload.teacher_level = 1;
+    if (newRole !== 'guru') payload.teacher_level = null;
+
     const { error } = await supabase
       .from('profiles')
-      .update({ role: newRole })
+      .update(payload)
       .eq('id', userId);
 
     if (error) {
@@ -233,23 +244,19 @@ export default function AdminUsersPage() {
   // Filter Data Pengguna
   const filteredUsers = users.filter((u) => {
     const matchesSearch = u.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    const matchesRole = u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
+  const showLevelGuru = roleFilter === 'guru';
+  const showStudentDetails = roleFilter === 'siswa';
+
   // Sorting sesuai permintaan:
-  // - Jika filter 'all': urut berdasarkan role (A-Z) lalu full_name (A-Z)
   // - Jika filter 'siswa': urut berdasarkan nis (numerik) dari kecil ke besar, lalu full_name
   // - Jika filter 'guru' atau 'admin': urut berdasarkan full_name (A-Z)
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     const nameA = (a.full_name || '').toLowerCase();
     const nameB = (b.full_name || '').toLowerCase();
-
-    if (roleFilter === 'all') {
-      const roleCmp = (a.role || '').localeCompare(b.role || '');
-      if (roleCmp !== 0) return roleCmp;
-      return nameA.localeCompare(nameB);
-    }
 
     if (roleFilter === 'siswa') {
       const na = Number(a.nis ?? NaN);
@@ -278,7 +285,7 @@ export default function AdminUsersPage() {
           <div>
             <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">&larr; Kembali ke Dashboard Admin</Link>
             <h1 className="text-2xl font-bold text-slate-800 mt-1">Manajemen Pengguna</h1>
-            <p className="text-slate-500 text-sm">Kelola, tambah, dan atur Guru Pembimbing santri.</p>
+            <p className="text-slate-500 text-sm">Kelola, tambah, dan atur Guru Pembimbing siswa.</p>
           </div>
           
           <button
@@ -304,17 +311,17 @@ export default function AdminUsersPage() {
 
           <div className="w-full md:w-auto flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0">
             <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Filter Peran:</span>
-            {['all', 'siswa', 'guru', 'admin'].map((r) => (
+            {['siswa', 'guru', 'admin'].map((r) => (
               <button
                 key={r}
-                onClick={() => setRoleFilter(r)}
+                onClick={() => setRoleFilter(r as 'siswa' | 'guru' | 'admin')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
                   roleFilter === r
                     ? 'bg-emerald-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {r === 'all' ? 'Semua' : r}
+                {r}
               </button>
             ))}
           </div>
@@ -328,16 +335,27 @@ export default function AdminUsersPage() {
             <div className="p-8 text-center text-slate-500 text-sm">Pengguna tidak ditemukan.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full table-fixed text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <th className="p-4">Nama Lengkap</th>
                     <th className="p-4">Peran (Role)</th>
-                    <th className="p-4">NIS</th>
-                    <th className="p-4">Guru Pembimbing</th>
-                    <th className="p-4">Tingkat Tahsin</th>
-                    <th className="p-4">Tingkat Tahfidz</th>
-                    <th className="p-4 text-center">Aksi</th>
+                    <th className="p-4">
+                      {showLevelGuru ? 'Level Guru' : <span className="invisible">Level Guru</span>}
+                    </th>
+                    <th className="p-4">
+                      {showStudentDetails ? 'NIS' : <span className="invisible">NIS</span>}
+                    </th>
+                    <th className="p-4">
+                      {showStudentDetails ? 'Guru Pembimbing' : <span className="invisible">Guru Pembimbing</span>}
+                    </th>
+                    <th className="p-4">
+                      {showStudentDetails ? 'Tingkat Tahsin' : <span className="invisible">Tingkat Tahsin</span>}
+                    </th>
+                    <th className="p-4">
+                      {showStudentDetails ? 'Tingkat Tahfidz' : <span className="invisible">Tingkat Tahfidz</span>}
+                    </th>
+                    <th className="p-4 text-center">&nbsp;</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
@@ -360,27 +378,37 @@ export default function AdminUsersPage() {
                         </span>
                       </td>
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.nis || '-') : '-'}
-                      </td>
+                      {showLevelGuru && (
+                        <td className="p-4 text-slate-600 text-xs font-medium">
+                          {user.role === 'guru' ? `Level ${user.teacher_level || 1}` : '-'}
+                        </td>
+                      )}
 
-                      <td className="p-4 text-slate-700 text-xs font-medium">
-                        {user.role === 'siswa' ? (
-                          user.teacher?.full_name ? (
-                            <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher.full_name}</span>
-                          ) : (
-                            <span className="text-slate-400 italic">Belum ditentukan</span>
-                          )
-                        ) : '-'}
-                      </td>
+                      {showStudentDetails && (
+                        <>
+                          <td className="p-4 text-slate-600 text-xs font-medium">
+                            {user.role === 'siswa' ? (user.nis || '-') : '-'}
+                          </td>
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.tahsin_level || 'Jilid 1') : '-'}
-                      </td>
+                          <td className="p-4 text-slate-700 text-xs font-medium">
+                            {user.role === 'siswa' ? (
+                              user.teacher?.full_name ? (
+                                <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher.full_name}</span>
+                              ) : (
+                                <span className="text-slate-400 italic">Belum ditentukan</span>
+                              )
+                            ) : '-'}
+                          </td>
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
-                      </td>
+                          <td className="p-4 text-slate-600 text-xs font-medium">
+                            {user.role === 'siswa' ? (user.tahsin_level || 'Jilid 1') : '-'}
+                          </td>
+
+                          <td className="p-4 text-slate-600 text-xs font-medium">
+                            {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
+                          </td>
+                        </>
+                      )}
 
                       <td className="p-4 text-center flex items-center justify-center gap-2">
                         <button
@@ -433,7 +461,7 @@ export default function AdminUsersPage() {
 
             <form onSubmit={handleAddUser} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap Santri / Pengguna</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap Siswa / Pengguna</label>
                 <input
                   type="text"
                   required
@@ -476,13 +504,30 @@ export default function AdminUsersPage() {
                   onChange={(e) => setNewRole(e.target.value as 'siswa' | 'guru' | 'admin')}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
-                  <option value="siswa">Siswa / Santri</option>
+                  <option value="siswa">Siswa</option>
                   <option value="guru">Guru / Pengajar</option>
                   <option value="admin">Administrator</option>
                 </select>
               </div>
 
               {/* Input Tambahan Jika Role = Siswa */}
+              {newRole === 'guru' && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Level Guru</label>
+                    <select
+                      value={newTeacherLevel}
+                      onChange={(e) => setNewTeacherLevel(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value={1}>Level 1</option>
+                      <option value={2}>Level 2</option>
+                      <option value={3}>Level 3</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {newRole === 'siswa' && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <div>
@@ -589,11 +634,28 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEditRole(e.target.value as Profile['role'])}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
-                  <option value="siswa">Siswa / Santri</option>
+                  <option value="siswa">Siswa</option>
                   <option value="guru">Guru / Pengajar</option>
                   <option value="admin">Administrator</option>
                 </select>
               </div>
+
+              {editRole === 'guru' && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Level Guru</label>
+                    <select
+                      value={editTeacherLevel}
+                      onChange={(e) => setEditTeacherLevel(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value={1}>Level 1</option>
+                      <option value={2}>Level 2</option>
+                      <option value={3}>Level 3</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {editRole === 'siswa' && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
