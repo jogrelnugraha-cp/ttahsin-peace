@@ -14,3 +14,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
   },
 });
+
+// Helper to create a new Supabase client with custom options
+export function createSupabaseClient(options?: Parameters<typeof createClient>[2]) {
+  const defaultOpts = {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  } as const;
+
+  return createClient(supabaseUrl, supabaseAnonKey, options ?? defaultOpts);
+}

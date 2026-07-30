@@ -14,7 +14,7 @@ export async function createUserAction(formData: FormData) {
   }
 
   // 1. Buat user di Supabase Auth
-  const { data: userData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
     email_confirm: true, // Langsung konfirmasi email

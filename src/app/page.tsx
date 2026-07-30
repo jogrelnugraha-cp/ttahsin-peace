@@ -42,7 +42,7 @@ export default function Home() {
             </span>
 
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
-              Belajar Al-Qur'an Lebih <br />
+              Belajar Al-Qur&apos;an Lebih <br />
               <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 Terpantau & Terstruktur
               </span>
@@ -90,7 +90,7 @@ export default function Home() {
             <div className="text-center space-y-3">
               <h2 className="text-3xl font-bold text-slate-900">Kemudahan Untuk Semua Peran</h2>
               <p className="text-slate-500 max-w-xl mx-auto text-sm">
-                Dirancang khusus untuk mendukung ekosistem pembelajaran Al-Qur'an secara interaktif dan transparan.
+                Dirancang khusus untuk mendukung ekosistem pembelajaran Al-Qur&apos;an secara interaktif dan transparan.
               </p>
             </div>
 

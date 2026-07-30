@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { submitBulkPresensi, PresensiItem } from './action';
 
 interface Student {
@@ -23,11 +23,6 @@ export default function PresensiKelasPage() {
   const [attendanceMap, setAttendanceMap] = useState<
     Record<string, { status: 'hadir' | 'izin' | 'sakit' | 'alfa'; catatan: string }>
   >({});
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     async function loadData() {
@@ -61,7 +56,7 @@ export default function PresensiKelasPage() {
     }
 
     loadData();
-  }, [supabase]);
+  }, []);
 
   // Handler Ubah Status Per Santri
   const handleStatusChange = (studentId: string, status: 'hadir' | 'izin' | 'sakit' | 'alfa') => {

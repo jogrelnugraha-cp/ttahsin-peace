@@ -17,11 +17,6 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    getProfile();
-    getSettings();
-  }, [pathname]);
-
   const getSettings = async () => {
     const { data } = await supabase
       .from('settings')
@@ -48,6 +43,15 @@ export default function Navbar() {
       setProfile(data as UserProfile);
     }
   };
+
+  useEffect(() => {
+    const loadNavigationData = async () => {
+      await getProfile();
+      await getSettings();
+    };
+
+    void loadNavigationData();
+  }, [pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

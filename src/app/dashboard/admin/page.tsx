@@ -1,13 +1,9 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '@/lib/supabaseClient';
 
 interface UserProfile {
   id: string;
@@ -28,15 +24,28 @@ interface TeacherProfile {
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const pathname = usePathname();
+  const [authMissing, setAuthMissing] = useState(false);
   const [stats, setStats] = useState({
     totalSiswa: 0,
     totalGuru: 0,
     totalAdmin: 0,
   });
+
+  // Debug / realtime counters (visible on-screen for verification)
+  const [debugCounts, setDebugCounts] = useState({
+    totalProfiles: 0,
+    totalSiswa: 0,
+    totalGuru: 0,
+    totalAdmin: 0,
+  });
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [debugSample, setDebugSample] = useState<any[] | null>(null);
 
   // Modal State untuk Penetapan Guru Pembimbing
   const [selectedStudent, setSelectedStudent] = useState<UserProfile | null>(null);
@@ -49,41 +58,122 @@ export default function AdminDashboardPage() {
 
     const fetchAdminData = async () => {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            full_name,
-            role,
-            nis,
-            tahsin_level,
-            tahfidz_level,
-            pembimbing_id,
-            teacher_level,
-            pembimbing:pembimbing_id(full_name)
-          `)
-          .order('created_at', { ascending: false });
+        // Pastikan pengguna sudah login di client; jika tidak, tampilkan tombol masuk
+        try {
+          const { data: authData, error: authErr } = await supabase.auth.getUser();
+          if (authErr || !authData?.user) {
+            // Tidak ada sesi -> set flag agar UI menampilkan tombol Masuk
+            setAuthMissing(true);
+            return;
+          }
+        } catch (e) {
+          setAuthMissing(true);
+          return;
+        }
 
-        if (error) throw error;
+        const selectFields = 'id, full_name, role, nis, tahsin_level, tahfidz_level, pembimbing_id, teacher_level';
+
+        // Log auth state to ensure client is authenticated
+        try {
+          const authState = await supabase.auth.getUser();
+          console.log('Supabase client auth state:', authState);
+        } catch (authErr) {
+          console.warn('Failed to get supabase auth state:', authErr);
+        }
+
+        const initialResult = await supabase.from('profiles').select(selectFields).order('created_at', { ascending: false });
+        console.log('profiles initialResult:', initialResult);
+        let data = initialResult.data;
+        let error = initialResult.error;
+
+        const logError = (label: string, err: unknown) => {
+          console.error(label, err);
+          console.error(`${label} type:`, typeof err, 'instanceof Error:', err instanceof Error);
+          console.error(`${label} keys:`, err && typeof err === 'object' ? Object.getOwnPropertyNames(err) : []);
+          console.error(`${label} serialized:`, (() => {
+            try {
+              return JSON.stringify(err, Object.getOwnPropertyNames(err), 2);
+            } catch (_err) {
+              return String(err);
+            }
+          })());
+        };
+
+        if (error || !Array.isArray(data)) {
+          logError('Supabase profiles query failed (initial attempt)', error || data);
+
+          const fallbackResult = await supabase.from('profiles').select(selectFields);
+          data = fallbackResult.data;
+          error = fallbackResult.error;
+
+          if (error || !Array.isArray(data)) {
+            logError('Supabase profiles query failed on fallback selectFields', error || data);
+            const fallbackAllResult = await supabase.from('profiles').select('*');
+            console.log('profiles fallbackAllResult:', fallbackAllResult);
+            data = fallbackAllResult.data;
+            error = fallbackAllResult.error;
+
+            if (error || !Array.isArray(data)) {
+              logError('Supabase profiles query failed on fallback select *', error || data);
+              throw error || new Error('Supabase profiles query returned invalid response');
+            }
+          }
+        }
+
         if (!isMounted) return;
 
-        const rawList = data || [];
+        // expose a small sample for on-page debugging and log lengths
+        console.log('profiles final data length:', Array.isArray(data) ? data.length : 'not-array', 'error:', error);
+        if (Array.isArray(data)) {
+          setDebugSample(data.slice(0, 5));
+        } else {
+          setDebugSample(null);
+        }
+        if (!isMounted) return;
+
+        const rawList = Array.isArray(data) ? data : [];
+        const teacherMap = rawList.reduce<Record<string, string>>((map, item) => {
+          const roleValue = typeof item.role === 'string' ? item.role.trim().toLowerCase() : '';
+          if (roleValue === 'guru' && item.id && item.full_name) {
+            map[item.id] = item.full_name;
+          }
+          return map;
+        }, {});
+
+        const normalizeRole = (role: unknown): UserProfile['role'] => {
+          if (typeof role !== 'string') return 'siswa';
+          const normalized = role.trim().toLowerCase();
+          if (normalized === 'guru' || normalized === 'admin') return normalized;
+          return 'siswa';
+        };
+
         const formattedList: UserProfile[] = rawList.map((item) => {
-          const pembimbingData = item.pembimbing as unknown as { full_name: string } | null;
+          const normalizedRole = normalizeRole(item.role);
           return {
             id: item.id,
             full_name: item.full_name || 'Tanpa Nama',
-            role: item.role || 'siswa',
+            role: normalizedRole,
             nis: item.nis,
             tahsin_level: item.tahsin_level,
             tahfidz_level: item.tahfidz_level,
             pembimbing_id: item.pembimbing_id,
             teacher_level: item.teacher_level,
-            pembimbing: pembimbingData,
+            pembimbing: item.pembimbing_id
+              ? { full_name: teacherMap[item.pembimbing_id] || 'Belum ditentukan' }
+              : null,
           };
         });
 
         setUsers(formattedList);
+
+        // Update debug counters and timestamp for quick verification
+        setDebugCounts({
+          totalProfiles: formattedList.length,
+          totalSiswa: formattedList.filter((u) => u.role === 'siswa').length,
+          totalGuru: formattedList.filter((u) => u.role === 'guru').length,
+          totalAdmin: formattedList.filter((u) => u.role === 'admin').length,
+        });
+        setLastUpdated(new Date().toISOString());
 
         const siswaList = formattedList.filter((u) => u.role === 'siswa');
         const guruList = formattedList.filter((u) => u.role === 'guru');
@@ -111,10 +201,31 @@ export default function AdminDashboardPage() {
       }
     };
 
+    // initial load
     fetchAdminData();
+
+    // Realtime subscription: refresh when profiles change
+    const channel = supabase
+      .channel('profiles_admin_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          // small guard to avoid updating when unmounted
+          if (!isMounted) return;
+          // Re-fetch list on any change
+          void fetchAdminData();
+        }
+      )
+      .subscribe();
 
     return () => {
       isMounted = false;
+      try {
+        supabase.removeChannel(channel);
+      } catch (_) {
+        // ignore
+      }
     };
   }, [refreshKey]);
 
@@ -158,6 +269,26 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-slate-600">
           Kelola pengguna, penetapan pembimbing, dan pemantauan sistem secara menyeluruh.
         </p>
+        <div className="mt-2 text-sm text-slate-500">
+          <span className="mr-3">Profiles: <strong className="text-slate-800">{debugCounts.totalProfiles}</strong></span>
+          <span className="mr-3">Santri: <strong className="text-emerald-600">{debugCounts.totalSiswa}</strong></span>
+          <span className="mr-3">Guru: <strong className="text-sky-600">{debugCounts.totalGuru}</strong></span>
+          <span className="mr-3">Admin: <strong className="text-indigo-600">{debugCounts.totalAdmin}</strong></span>
+          <span className="ml-2 text-xs text-slate-400">{lastUpdated ? `Updated ${new Date(lastUpdated).toLocaleTimeString()}` : 'Not loaded yet'}</span>
+        </div>
+        {authMissing && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded flex items-center justify-between">
+            <div className="text-sm text-yellow-800">Anda belum masuk. Silakan masuk untuk melihat data administrator.</div>
+            <div>
+              <button
+                onClick={() => router.push(`/login?redirectTo=${pathname || '/dashboard/admin'}`)}
+                className="px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700"
+              >
+                Masuk
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cards Statistik */}

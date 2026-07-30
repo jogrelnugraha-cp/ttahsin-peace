@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
+import { supabase, createSupabaseClient } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
 interface Profile {
   id: string;
   full_name: string;
   role: 'admin' | 'guru' | 'siswa' | 'ortu';
+  nis?: string;
   teacher_id?: string | null;
   tahsin_level?: string;
   tahfidz_level?: string;
@@ -40,6 +40,7 @@ export default function AdminUsersPage() {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<'siswa' | 'guru' | 'admin'>('siswa');
   const [newTeacherId, setNewTeacherId] = useState('');
+  const [newNis, setNewNis] = useState('');
   const [newTahsin, setNewTahsin] = useState('Jilid 1');
   const [newTahfidz, setNewTahfidz] = useState('Juz 30');
 
@@ -47,6 +48,7 @@ export default function AdminUsersPage() {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState('');
   const [editTeacherId, setEditTeacherId] = useState('');
+  const [editNis, setEditNis] = useState('');
   const [editTahsin, setEditTahsin] = useState('');
   const [editTahfidz, setEditTahfidz] = useState('');
   const [editRole, setEditRole] = useState<'admin' | 'guru' | 'siswa' | 'ortu'>('siswa');
@@ -113,12 +115,7 @@ export default function AdminUsersPage() {
     setErrorMsg(null);
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-      const tempSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { persistSession: false },
-      });
+      const tempSupabase = createSupabaseClient({ auth: { persistSession: false } });
 
       // 1. Registrasi Akun Auth Baru
       const { data: authData, error: authError } = await tempSupabase.auth.signUp({
@@ -139,9 +136,10 @@ export default function AdminUsersPage() {
           id: authData.user.id,
           full_name: newName,
           role: newRole,
-          tahsin_level: newRole === 'siswa' ? newTahsin : null,
-          tahfidz_level: newRole === 'siswa' ? newTahfidz : null,
-          teacher_id: newRole === 'siswa' && newTeacherId ? newTeacherId : null,
+              nis: newRole === 'siswa' ? (newNis || null) : null,
+              tahsin_level: newRole === 'siswa' ? newTahsin : null,
+              tahfidz_level: newRole === 'siswa' ? newTahfidz : null,
+              teacher_id: newRole === 'siswa' && newTeacherId ? newTeacherId : null,
         };
 
         const { error: profileError } = await supabase
@@ -163,6 +161,7 @@ export default function AdminUsersPage() {
       setNewPassword('');
       setNewRole('siswa');
       setNewTeacherId('');
+      setNewNis('');
       setNewTahsin('Jilid 1');
       setNewTahfidz('Juz 30');
 
@@ -179,6 +178,7 @@ export default function AdminUsersPage() {
     setEditingUser(user);
     setEditName(user.full_name || '');
     setEditTeacherId(user.teacher_id || '');
+    setEditNis(user.nis || '');
     setEditTahsin(user.tahsin_level || 'Jilid 1');
     setEditTahfidz(user.tahfidz_level || 'Juz 30');
     setEditRole(user.role);
@@ -193,6 +193,7 @@ export default function AdminUsersPage() {
     const updatePayload: Record<string, string | null> = {
       full_name: editName,
       role: editRole,
+      nis: editRole === 'siswa' ? (editNis || null) : null,
       tahsin_level: editRole === 'siswa' ? editTahsin : null,
       tahfidz_level: editRole === 'siswa' ? editTahfidz : null,
       teacher_id: editRole === 'siswa' && editTeacherId ? editTeacherId : null,
@@ -236,6 +237,38 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole;
   });
 
+  // Sorting sesuai permintaan:
+  // - Jika filter 'all': urut berdasarkan role (A-Z) lalu full_name (A-Z)
+  // - Jika filter 'siswa': urut berdasarkan nis (numerik) dari kecil ke besar, lalu full_name
+  // - Jika filter 'guru' atau 'admin': urut berdasarkan full_name (A-Z)
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    const nameA = (a.full_name || '').toLowerCase();
+    const nameB = (b.full_name || '').toLowerCase();
+
+    if (roleFilter === 'all') {
+      const roleCmp = (a.role || '').localeCompare(b.role || '');
+      if (roleCmp !== 0) return roleCmp;
+      return nameA.localeCompare(nameB);
+    }
+
+    if (roleFilter === 'siswa') {
+      const na = Number(a.nis ?? NaN);
+      const nb = Number(b.nis ?? NaN);
+      const aIsNum = Number.isFinite(na);
+      const bIsNum = Number.isFinite(nb);
+      if (aIsNum && bIsNum) {
+        if (na !== nb) return na - nb;
+        return nameA.localeCompare(nameB);
+      }
+      if (aIsNum && !bIsNum) return -1;
+      if (!aIsNum && bIsNum) return 1;
+      return nameA.localeCompare(nameB);
+    }
+
+    // default for guru/admin: sort by name
+    return nameA.localeCompare(nameB);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -243,9 +276,7 @@ export default function AdminUsersPage() {
         {/* Navigasi Header */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
-              &larr; Kembali ke Dashboard Admin
-            </Link>
+            <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">&larr; Kembali ke Dashboard Admin</Link>
             <h1 className="text-2xl font-bold text-slate-800 mt-1">Manajemen Pengguna</h1>
             <p className="text-slate-500 text-sm">Kelola, tambah, dan atur Guru Pembimbing santri.</p>
           </div>
@@ -302,6 +333,7 @@ export default function AdminUsersPage() {
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <th className="p-4">Nama Lengkap</th>
                     <th className="p-4">Peran (Role)</th>
+                    <th className="p-4">NIS</th>
                     <th className="p-4">Guru Pembimbing</th>
                     <th className="p-4">Tingkat Tahsin</th>
                     <th className="p-4">Tingkat Tahfidz</th>
@@ -309,7 +341,7 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {filteredUsers.map((user) => (
+                  {sortedUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-4">
                         <div className="font-bold text-slate-800">{user.full_name || 'Tanpa Nama'}</div>
@@ -326,6 +358,10 @@ export default function AdminUsersPage() {
                         }`}>
                           {user.role}
                         </span>
+                      </td>
+
+                      <td className="p-4 text-slate-600 text-xs font-medium">
+                        {user.role === 'siswa' ? (user.nis || '-') : '-'}
                       </td>
 
                       <td className="p-4 text-slate-700 text-xs font-medium">
@@ -450,6 +486,16 @@ export default function AdminUsersPage() {
               {newRole === 'siswa' && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">NIS (Nomor Induk Siswa)</label>
+                    <input
+                      type="text"
+                      placeholder="Nomor Induk Siswa"
+                      value={newNis}
+                      onChange={(e) => setNewNis(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Guru Pembimbing / Pengajar</label>
                     <select
                       value={newTeacherId}
@@ -551,6 +597,16 @@ export default function AdminUsersPage() {
 
               {editRole === 'siswa' && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">NIS (Nomor Induk Siswa)</label>
+                    <input
+                      type="text"
+                      placeholder="Nomor Induk Siswa"
+                      value={editNis}
+                      onChange={(e) => setEditNis(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Guru Pembimbing / Pengajar</label>
                     <select

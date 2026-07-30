@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
+interface StudentSelect {
+  id: string;
+  full_name: string;
+}
+
 export default function InputSetoranPage() {
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentSelect[]>([]);
   const [selectedStudent, setSelectedStudent] = useState('');
   const [type, setType] = useState<'tahsin' | 'tahfidz'>('tahfidz');
   const [surahOrJuz, setSurahOrJuz] = useState('');
@@ -14,17 +19,17 @@ export default function InputSetoranPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const fetchStudents = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'siswa')
+        .order('full_name');
+      if (data) setStudents(data as StudentSelect[]);
+    };
+
     fetchStudents();
   }, []);
-
-  const fetchStudents = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('role', 'siswa')
-      .order('full_name');
-    if (data) setStudents(data);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +121,7 @@ export default function InputSetoranPage() {
           <label className="block text-sm font-medium text-slate-700 mb-1">Surah / Juz / Jilid</label>
           <input
             type="text"
-            placeholder="Contoh: Surah An-Naba' atau Juz 30 / Jilid 2"
+            placeholder="Contoh: Surah An-Naba&apos; atau Juz 30 / Jilid 2"
             value={surahOrJuz}
             onChange={(e) => setSurahOrJuz(e.target.value)}
             className="w-full border p-2.5 rounded-lg text-slate-800"

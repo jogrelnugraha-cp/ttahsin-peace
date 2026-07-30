@@ -21,26 +21,6 @@ export default function AdminAnnouncementsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAnnouncements();
-
-    // Setup Realtime Subscription to auto-refresh the announcements list
-    const channel = supabase
-      .channel('announcements_admin_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'announcements' },
-        () => {
-          fetchAnnouncements();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const fetchAnnouncements = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -55,6 +35,30 @@ export default function AdminAnnouncementsPage() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      await fetchAnnouncements();
+    };
+
+    void loadAnnouncements();
+
+    // Setup Realtime Subscription to auto-refresh the announcements list
+    const channel = supabase
+      .channel('announcements_admin_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'announcements' },
+        () => {
+          void fetchAnnouncements();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();

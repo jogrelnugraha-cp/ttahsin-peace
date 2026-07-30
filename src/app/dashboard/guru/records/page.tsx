@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
@@ -11,11 +11,14 @@ interface Student {
   tahfidz_level?: string;
 }
 
+type AttendanceStatus = 'hadir' | 'izin' | 'sakit' | 'alpa';
+type ProgramOption = 'Tahsin' | 'Tahfidz' | 'Keduanya';
+
 interface DailyRecord {
   id: string;
   date: string;
-  attendance: 'hadir' | 'izin' | 'sakit' | 'alpa';
-  program: 'Tahsin' | 'Tahfidz' | 'Keduanya';
+  attendance: AttendanceStatus;
+  program: ProgramOption;
   tahsin_material: string;
   tahfidz_material: string;
   grade: string;
@@ -35,36 +38,14 @@ export default function GuruDailyRecordsPage() {
   // Form State
   const [studentId, setStudentId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [attendance, setAttendance] = useState<'hadir' | 'izin' | 'sakit' | 'alpa'>('hadir');
-  const [program, setProgram] = useState<'Tahsin' | 'Tahfidz' | 'Keduanya'>('Tahsin');
+  const [attendance, setAttendance] = useState<AttendanceStatus>('hadir');
+  const [program, setProgram] = useState<ProgramOption>('Tahsin');
   const [tahsinMaterial, setTahsinMaterial] = useState('');
   const [tahfidzMaterial, setTahfidzMaterial] = useState('');
   const [grade, setGrade] = useState('Lancar');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
-    setLoading(true);
-
-    // Ambil daftar santri
-    const { data: studentData } = await supabase
-      .from('profiles')
-      .select('id, full_name, tahsin_level, tahfidz_level')
-      .eq('role', 'siswa')
-      .order('full_name', { ascending: true });
-
-    if (studentData) {
-      setStudents(studentData);
-      if (studentData.length > 0) setStudentId(studentData[0].id);
-    }
-
-    fetchRecords();
-  };
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     const { data: recordData } = await supabase
       .from('daily_records')
       .select(`
@@ -76,10 +57,32 @@ export default function GuruDailyRecordsPage() {
       .limit(10);
 
     if (recordData) {
-      setRecords(recordData as unknown as DailyRecord[]);
+      setRecords(recordData as DailyRecord[]);
     }
-    setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true);
+
+      // Ambil daftar santri
+      const { data: studentData } = await supabase
+        .from('profiles')
+        .select('id, full_name, tahsin_level, tahfidz_level')
+        .eq('role', 'siswa')
+        .order('full_name', { ascending: true });
+
+      if (studentData) {
+        setStudents(studentData as Student[]);
+        if (studentData.length > 0) setStudentId(studentData[0].id);
+      }
+
+      await fetchRecords();
+      setLoading(false);
+    };
+
+    fetchInitialData();
+  }, [fetchRecords]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +215,7 @@ export default function GuruDailyRecordsPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Status Kehadiran</label>
                 <select
                   value={attendance}
-                  onChange={(e) => setAttendance(e.target.value as any)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAttendance(e.target.value as AttendanceStatus)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="hadir">Hadir</option>
@@ -227,7 +230,7 @@ export default function GuruDailyRecordsPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Program Setoran</label>
                 <select
                   value={program}
-                  onChange={(e) => setProgram(e.target.value as any)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setProgram(e.target.value as ProgramOption)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="Tahsin">Tahsin</option>

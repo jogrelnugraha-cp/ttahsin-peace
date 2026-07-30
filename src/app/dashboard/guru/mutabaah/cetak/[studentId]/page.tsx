@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 
 interface TahsinRecord {
   id: string;
@@ -33,11 +33,6 @@ interface StudentMutabaah {
 export default function CetakMutabaahPage({ params }: { params: { studentId: string } }) {
   const [data, setData] = useState<StudentMutabaah | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     async function fetchMutabaahData() {
@@ -83,7 +78,7 @@ export default function CetakMutabaahPage({ params }: { params: { studentId: str
     if (params.studentId) {
       fetchMutabaahData();
     }
-  }, [params.studentId, supabase]);
+  }, [params.studentId]);
 
   const handlePrint = () => {
     window.print();

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { submitPromotionRequest } from './promotions/action';
 
 interface StudentProfile {
@@ -27,11 +27,6 @@ export default function GuruDashboardPage() {
   const [targetLevel, setTargetLevel] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -70,7 +65,7 @@ export default function GuruDashboardPage() {
     }
 
     loadDashboardData();
-  }, [supabase]);
+  }, []);
 
   // Fungsi Buka Modal
   const openModal = (student: StudentProfile) => {
