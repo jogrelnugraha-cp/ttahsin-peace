@@ -75,25 +75,25 @@ export default function AdminReportsPage() {
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
-            &larr; Kembali ke Dashboard Admin
-          </Link>
-          <div className="flex items-center justify-between mt-1">
-            <div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+          <div>
+            <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
+              &larr; Kembali ke Dashboard Admin
+            </Link>
+            <div className="mt-1">
               <h1 className="text-2xl font-bold text-slate-800">Laporan Kendala Santri</h1>
               <p className="text-slate-500 text-sm">Tinjau dan tanggapi laporan yang dikirim oleh guru.</p>
             </div>
-            {openCount > 0 && (
-              <span className="bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full">
-                {openCount} Belum Ditangani
-              </span>
-            )}
           </div>
+          {openCount > 0 && (
+            <span className="self-start sm:self-auto bg-amber-100 text-amber-800 text-sm font-bold px-3 py-1 rounded-full">
+              {openCount} Belum Ditangani
+            </span>
+          )}
         </div>
 
         {/* Filter */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['all', 'open', 'resolved'] as const).map((status) => (
             <button
               key={status}
@@ -167,17 +167,17 @@ export default function AdminReportsPage() {
                       onChange={(e) => setResponseText(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <button
                         onClick={() => handleRespond(item.id)}
                         disabled={saving || !responseText.trim()}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition"
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition"
                       >
                         {saving ? 'Menyimpan...' : '✓ Simpan & Tandai Selesai'}
                       </button>
                       <button
                         onClick={() => { setRespondingId(null); setResponseText(''); }}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                        className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
                       >
                         Batal
                       </button>

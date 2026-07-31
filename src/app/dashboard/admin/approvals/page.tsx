@@ -132,7 +132,7 @@ export default function AdminApprovalsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* Header Navigasi */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; Kembali ke Dashboard Admin
@@ -167,20 +167,20 @@ export default function AdminApprovalsPage() {
                     <p className="text-xs text-slate-400">Diajukan oleh: {item.guru?.full_name || 'Guru'}</p>
                   </div>
 
-                  <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                  <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:justify-end md:w-auto">
                     {item.status === 'pending' ? (
                       <>
                         <button
                           disabled={actionLoading === item.id}
                           onClick={() => handlePromotionAction(item, 'approved')}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition shadow-sm disabled:opacity-50"
+                          className="w-full sm:w-auto px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition shadow-sm disabled:opacity-50"
                         >
                           ✓ Setujui
                         </button>
                         <button
                           disabled={actionLoading === item.id}
                           onClick={() => handlePromotionAction(item, 'rejected')}
-                          className="px-3.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-lg text-xs font-semibold transition disabled:opacity-50"
+                          className="w-full sm:w-auto px-3.5 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-lg text-xs font-semibold transition disabled:opacity-50"
                         >
                           ✕ Tolak
                         </button>
@@ -219,12 +219,12 @@ export default function AdminApprovalsPage() {
                     <p className="text-xs text-slate-400">Dilaporkan oleh: {item.guru?.full_name || 'Guru'}</p>
                   </div>
 
-                  <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                  <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:justify-end md:w-auto">
                     {item.status === 'open' ? (
                       <button
                         disabled={actionLoading === item.id}
                         onClick={() => handleReportResolve(item.id)}
-                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm disabled:opacity-50"
+                        className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm disabled:opacity-50"
                       >
                         ✓ Tandai Selesai
                       </button>

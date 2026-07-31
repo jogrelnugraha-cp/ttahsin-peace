@@ -322,25 +322,25 @@ export default function AdminDashboardPage() {
       <div className="flex flex-wrap gap-3">
         <Link
           href="/dashboard/admin/users"
-          className="bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-900 transition shadow-sm"
+          className="w-full sm:w-auto bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-900 transition shadow-sm"
         >
           👥 Kelola Pengguna &amp; Peran
         </Link>
         <Link
           href="/dashboard/admin/announcements"
-          className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
+          className="w-full sm:w-auto bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
         >
           📢 Pengumuman
         </Link>
         <Link
           href="/dashboard/admin/reports"
-          className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
+          className="w-full sm:w-auto bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
         >
           📊 Laporan Rekapitulasi
         </Link>
         <Link
           href="/dashboard/admin/settings"
-          className="bg-slate-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-sm"
+          className="w-full sm:w-auto bg-slate-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-sm"
         >
           ⚙️ Pengaturan Sistem
         </Link>
@@ -348,9 +348,9 @@ export default function AdminDashboardPage() {
 
       {/* Tabel Santri & Penetapan Guru Pembimbing */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+        <div className="p-4 border-b bg-slate-50 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
           <h2 className="font-semibold text-slate-700">Penetapan Pembimbing Santri</h2>
-          <span className="text-xs bg-slate-200 text-slate-700 font-medium px-2.5 py-1 rounded-full">
+          <span className="text-xs bg-slate-200 text-slate-700 font-medium px-2.5 py-1 rounded-full self-start sm:self-auto">
             {users.filter((u) => u.role === 'siswa').length} Santri
           </span>
         </div>
@@ -358,17 +358,18 @@ export default function AdminDashboardPage() {
         {loading ? (
           <div className="p-8 text-center text-slate-500">Memuat data pengguna...</div>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500 bg-slate-50 border-b">
-              <tr>
-                <th className="p-4">Nama Santri</th>
-                <th className="p-4">NIS</th>
-                <th className="p-4">Tingkat Tahsin / Tahfidz</th>
-                <th className="p-4">Guru Pembimbing</th>
-                <th className="p-4 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <div className="overflow-x-auto">
+            <table className="min-w-[760px] w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500 bg-slate-50 border-b">
+                <tr>
+                  <th className="p-4 whitespace-nowrap">Nama Santri</th>
+                  <th className="p-4 whitespace-nowrap">NIS</th>
+                  <th className="p-4 whitespace-nowrap">Tingkat Tahsin / Tahfidz</th>
+                  <th className="p-4 whitespace-nowrap">Guru Pembimbing</th>
+                  <th className="p-4 text-center whitespace-nowrap">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
               {users.filter((u) => u.role === 'siswa').length > 0 ? (
                 users
                   .filter((u) => u.role === 'siswa')
@@ -378,7 +379,7 @@ export default function AdminDashboardPage() {
                       <td className="p-4 text-slate-600">{student.nis || '-'}</td>
                       <td className="p-4 space-x-1">
                         <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-medium">
-                          {student.tahsin_level || 'Jilid 1'}
+                          {student.tahsin_level || 'Level 1'}
                         </span>
                         <span className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded text-xs font-medium">
                           {student.tahfidz_level || 'Juz 30'}
@@ -410,8 +411,9 @@ export default function AdminDashboardPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

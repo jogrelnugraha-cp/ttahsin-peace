@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase, createSupabaseClient } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
 interface Profile {
@@ -9,12 +9,14 @@ interface Profile {
   full_name: string;
   role: 'admin' | 'guru' | 'siswa' | 'ortu';
   nis?: string;
+  pembimbing_id?: string | null;
   teacher_id?: string | null;
   teacher_level?: number;
   tahsin_level?: string;
   tahfidz_level?: string;
   created_at: string;
   teacher?: { full_name: string } | null;
+  pembimbing?: { full_name: string } | null;
 }
 
 interface Teacher {
@@ -43,7 +45,7 @@ export default function AdminUsersPage() {
   const [newTeacherId, setNewTeacherId] = useState('');
   const [newNis, setNewNis] = useState('');
   const [newTeacherLevel, setNewTeacherLevel] = useState(1);
-  const [newTahsin, setNewTahsin] = useState('Jilid 1');
+  const [newTahsin, setNewTahsin] = useState('Level 1');
   const [newTahfidz, setNewTahfidz] = useState('Juz 30');
 
   // State Modal Edit Pengguna
@@ -69,17 +71,19 @@ export default function AdminUsersPage() {
   };
 
   const fetchProfilesData = async () => {
-    // Coba query dengan relasi teacher_id
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, teacher:teacher_id(full_name)')
+      .select('*, teacher:pembimbing_id(full_name), legacy_teacher:teacher_id(full_name)')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      return data as Profile[];
+      return data.map((item) => ({
+        ...item,
+        teacher: item.teacher || item.legacy_teacher || null,
+        pembimbing: item.teacher || item.legacy_teacher || null,
+      })) as Profile[];
     }
 
-    // Fallback jika kolom teacher_id belum ada di tabel Supabase
     const { data: fallbackData } = await supabase
       .from('profiles')
       .select('*')
@@ -120,10 +124,9 @@ export default function AdminUsersPage() {
     setErrorMsg(null);
 
     try {
-      const tempSupabase = createSupabaseClient({ auth: { persistSession: false } });
-
-      // 1. Registrasi Akun Auth Baru
-      const { data: authData, error: authError } = await tempSupabase.auth.signUp({
+      // 1. Registrasi Akun Auth Baru dengan client auth yang sama seperti UI lain,
+      // agar browser tidak membuat instance GoTrueClient yang baru dan bertabrakan.
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newEmail,
         password: newPassword,
         options: {
@@ -137,6 +140,8 @@ export default function AdminUsersPage() {
       if (authError) throw authError;
 
       if (authData.user) {
+        const selectedTeacherId = newRole === 'siswa' && newTeacherId ? newTeacherId : null;
+
         const profilePayload: Record<string, any> = {
           id: authData.user.id,
           full_name: newName,
@@ -144,7 +149,8 @@ export default function AdminUsersPage() {
           nis: newRole === 'siswa' ? (newNis || null) : null,
           tahsin_level: newRole === 'siswa' ? newTahsin : null,
           tahfidz_level: newRole === 'siswa' ? newTahfidz : null,
-          teacher_id: newRole === 'siswa' && newTeacherId ? newTeacherId : null,
+          pembimbing_id: selectedTeacherId,
+          teacher_id: selectedTeacherId,
           teacher_level: newRole === 'guru' ? newTeacherLevel : null,
         };
 
@@ -169,7 +175,7 @@ export default function AdminUsersPage() {
       setNewTeacherId('');
       setNewNis('');
       setNewTeacherLevel(1);
-      setNewTahsin('Jilid 1');
+      setNewTahsin('Level 1');
       setNewTahfidz('Juz 30');
 
       await reloadUsers();
@@ -187,7 +193,7 @@ export default function AdminUsersPage() {
     setEditTeacherId(user.teacher_id || '');
     setEditNis(user.nis || '');
     setEditTeacherLevel(user.teacher_level || 1);
-    setEditTahsin(user.tahsin_level || 'Jilid 1');
+    setEditTahsin(user.tahsin_level || 'Level 1');
     setEditTahfidz(user.tahfidz_level || 'Juz 30');
     setEditRole(user.role);
   };
@@ -198,13 +204,16 @@ export default function AdminUsersPage() {
     if (!editingUser) return;
     setSavingEdit(true);
 
+    const selectedTeacherId = editRole === 'siswa' && editTeacherId ? editTeacherId : null;
+
     const updatePayload: Record<string, any> = {
       full_name: editName,
       role: editRole,
       nis: editRole === 'siswa' ? (editNis || null) : null,
       tahsin_level: editRole === 'siswa' ? editTahsin : null,
       tahfidz_level: editRole === 'siswa' ? editTahfidz : null,
-      teacher_id: editRole === 'siswa' && editTeacherId ? editTeacherId : null,
+      pembimbing_id: selectedTeacherId,
+      teacher_id: selectedTeacherId,
       teacher_level: editRole === 'guru' ? editTeacherLevel : null,
     };
 
@@ -271,6 +280,7 @@ export default function AdminUsersPage() {
   });
 
   const showLevelGuru = roleFilter === 'guru';
+  const showStudentColumns = roleFilter === 'siswa';
 
   // Sorting sesuai permintaan:
   // - Jika filter 'siswa': urut berdasarkan nis (numerik) dari kecil ke besar, lalu full_name
@@ -356,17 +366,17 @@ export default function AdminUsersPage() {
             <div className="p-8 text-center text-slate-500 text-sm">Pengguna tidak ditemukan.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed text-left border-collapse">
+              <table className="min-w-[1100px] w-full table-fixed text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                        <th className="p-4">Nama Lengkap</th>
-                    <th className="p-4">Peran (Role)</th>
-                    {showLevelGuru && <th className="p-4">Level Guru</th>}
-                    <th className="p-4">NIS</th>
-                    <th className="p-4">Guru Pembimbing</th>
-                    <th className="p-4">Tingkat Tahsin</th>
-                    <th className="p-4">Tingkat Tahfidz</th>
-                    <th className="p-4 text-center">&nbsp;</th>
+                    <th className="p-4 whitespace-nowrap">Nama Lengkap</th>
+                    <th className="p-4 whitespace-nowrap">Peran (Role)</th>
+                    {showLevelGuru && <th className="p-4 whitespace-nowrap">Level Guru</th>}
+                    {showStudentColumns && <th className="p-4 whitespace-nowrap">NIS</th>}
+                    {showStudentColumns && <th className="p-4 whitespace-nowrap">Guru Pembimbing</th>}
+                    {showStudentColumns && <th className="p-4 whitespace-nowrap">Tingkat Tahsin</th>}
+                    {showStudentColumns && <th className="p-4 whitespace-nowrap">Tingkat Tahfidz</th>}
+                    <th className="p-4 text-center whitespace-nowrap">&nbsp;</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
@@ -395,45 +405,55 @@ export default function AdminUsersPage() {
                         </td>
                       )}
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.nis || '-') : '-'}
-                      </td>
+                      {showStudentColumns && (
+                        <td className="p-4 text-slate-600 text-xs font-medium">
+                          {user.role === 'siswa' ? (user.nis || '-') : '-'}
+                        </td>
+                      )}
 
-                      <td className="p-4 text-slate-700 text-xs font-medium">
-                        {user.role === 'siswa' ? (
-                          user.teacher?.full_name ? (
-                            <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher.full_name}</span>
-                          ) : (
-                            <span className="text-slate-400 italic">Belum ditentukan</span>
-                          )
-                        ) : '-'}
-                      </td>
+                      {showStudentColumns && (
+                        <td className="p-4 text-slate-700 text-xs font-medium">
+                          {user.role === 'siswa' ? (
+                            (user.teacher?.full_name || user.pembimbing?.full_name) ? (
+                              <span className="font-semibold text-emerald-700">👳‍♂️ {user.teacher?.full_name || user.pembimbing?.full_name}</span>
+                            ) : (
+                              <span className="text-slate-400 italic">Belum ditentukan</span>
+                            )
+                          ) : '-'}
+                        </td>
+                      )}
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.tahsin_level || 'Jilid 1') : '-'}
-                      </td>
+                      {showStudentColumns && (
+                        <td className="p-4 text-slate-600 text-xs font-medium">
+                          {user.role === 'siswa' ? (user.tahsin_level || 'Level 1') : '-'}
+                        </td>
+                      )}
 
-                      <td className="p-4 text-slate-600 text-xs font-medium">
-                        {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
-                      </td>
+                      {showStudentColumns && (
+                        <td className="p-4 text-slate-600 text-xs font-medium">
+                          {user.role === 'siswa' ? (user.tahfidz_level || 'Juz 30') : '-'}
+                        </td>
+                      )}
 
-                      <td className="p-4 text-center flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
-                        >
-                          ✏️ Edit
-                        </button>
-                        <select
-                          disabled={updatingId === user.id}
-                          value={user.role}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          className="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:opacity-50"
-                        >
-                          <option value="siswa">Siswa</option>
-                          <option value="guru">Guru</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                      <td className="p-4 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="w-full sm:w-auto px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <select
+                            disabled={updatingId === user.id}
+                            value={user.role}
+                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                            className="w-full sm:w-auto px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:opacity-50"
+                          >
+                            <option value="siswa">Siswa</option>
+                            <option value="guru">Guru</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -566,7 +586,7 @@ export default function AdminUsersPage() {
                       <label className="block text-xs font-semibold text-slate-600 mb-1">Tingkat Tahsin</label>
                       <input
                         type="text"
-                        placeholder="Contoh: Jilid 1"
+                        placeholder="Contoh: Level 1"
                         value={newTahsin}
                         onChange={(e) => setNewTahsin(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"

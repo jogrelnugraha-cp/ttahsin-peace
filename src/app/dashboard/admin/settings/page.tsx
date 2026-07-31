@@ -102,12 +102,14 @@ export default function AdminSettingsPage() {
       <div className="max-w-2xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
-            &larr; Kembali ke Dashboard Admin
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-800 mt-1">Pengaturan Aplikasi</h1>
-          <p className="text-slate-500 text-sm">Kelola logo dan identitas visual aplikasi.</p>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
+          <div>
+            <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
+              &larr; Kembali ke Dashboard Admin
+            </Link>
+            <h1 className="text-2xl font-bold text-slate-800 mt-1">Pengaturan Aplikasi</h1>
+            <p className="text-slate-500 text-sm">Kelola logo dan identitas visual aplikasi.</p>
+          </div>
         </div>
 
         {/* Global Message */}
@@ -126,7 +128,7 @@ export default function AdminSettingsPage() {
           <h2 className="text-lg font-bold text-slate-800">Logo Aplikasi</h2>
 
           {/* Current Logo */}
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div className={`w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${
               currentLogoUrl ? 'bg-transparent border border-slate-200 p-1' : 'bg-emerald-600 text-white shadow-md'
             }`}>
@@ -194,7 +196,7 @@ export default function AdminSettingsPage() {
               <button
                 onClick={handleLogoUpload}
                 disabled={uploading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm transition disabled:opacity-50"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg font-bold text-sm shadow-sm transition disabled:opacity-50"
               >
                 {uploading ? '⏳ Mengunggah...' : '📤 Simpan Logo Baru'}
               </button>
@@ -218,7 +220,7 @@ export default function AdminSettingsPage() {
           <button
             onClick={handleSaveName}
             disabled={savingName || !appName.trim()}
-            className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition disabled:opacity-50"
+            className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition disabled:opacity-50"
           >
             {savingName ? 'Menyimpan...' : '💾 Simpan Nama'}
           </button>

@@ -111,7 +111,7 @@ export default function AdminAnnouncementsPage() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Navigation Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; Kembali ke Dashboard Admin
@@ -121,9 +121,9 @@ export default function AdminAnnouncementsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Create Announcement */}
-          <div className="md:col-span-1 bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4 h-fit">
+          <div className="lg:col-span-1 bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4 h-fit">
             <h3 className="text-base font-bold text-slate-800">Buat Pengumuman Baru</h3>
 
             {errorMsg && (
@@ -160,7 +160,7 @@ export default function AdminAnnouncementsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
               >
                 <span>📢</span>
                 <span>{submitting ? 'Mengirim...' : 'Kirim Pengumuman'}</span>
@@ -169,7 +169,7 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           {/* List of Announcements */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             <h3 className="text-base font-bold text-slate-800">Riwayat Pengumuman</h3>
 
             {loading ? (
@@ -187,7 +187,7 @@ export default function AdminAnnouncementsPage() {
                     key={ann.id}
                     className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative group hover:border-emerald-200 transition-all"
                   >
-                    <div className="flex justify-between items-start gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
                       <div>
                         <span className="text-[10px] text-slate-400 font-medium">
                           {new Date(ann.created_at).toLocaleString('id-ID', {
@@ -200,7 +200,7 @@ export default function AdminAnnouncementsPage() {
 
                       <button
                         onClick={() => handleDeleteAnnouncement(ann.id)}
-                        className="text-slate-300 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                        className="self-start text-slate-300 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
                         title="Hapus Pengumuman"
                       >
                         🗑️

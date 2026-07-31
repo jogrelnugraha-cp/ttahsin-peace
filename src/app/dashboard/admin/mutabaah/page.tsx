@@ -47,7 +47,7 @@ export default function AdminMutabaahPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         
         {/* Navigation Header */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href="/dashboard/admin" className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; Kembali ke Dashboard Admin
@@ -80,10 +80,10 @@ export default function AdminMutabaahPage() {
                 </select>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="pt-4 border-t border-slate-100 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={() => handlePrint('tahsin')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-bold text-sm shadow-md shadow-emerald-100 transition flex items-center justify-center space-x-2"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-bold text-sm shadow-md shadow-emerald-100 transition flex items-center justify-center space-x-2"
                 >
                   <span>📄</span>
                   <span>Cetak Mutaba&apos;ah Tahsin</span>
@@ -91,7 +91,7 @@ export default function AdminMutabaahPage() {
 
                 <button
                   onClick={() => handlePrint('tahfidz')}
-                  className="bg-sky-600 hover:bg-sky-700 text-white py-3 rounded-lg font-bold text-sm shadow-md shadow-sky-100 transition flex items-center justify-center space-x-2"
+                  className="w-full bg-sky-600 hover:bg-sky-700 text-white py-3 rounded-lg font-bold text-sm shadow-md shadow-sky-100 transition flex items-center justify-center space-x-2"
                 >
                   <span>📖</span>
                   <span>Cetak Mutaba&apos;ah Tahfidz</span>
