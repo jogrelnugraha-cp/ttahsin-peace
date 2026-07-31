@@ -146,12 +146,24 @@ export default function GuruDashboardPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <div className="sticky top-6 space-y-4">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4">Menu Cepat</h2>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
+            <p className="mt-1 text-sm text-slate-600">
+              {teacherLevel >= 3
+                ? 'Menampilkan seluruh siswa (Supervisor Level 3)'
+                : 'Kelola perkembangan dan presensi siswa bimbingan Anda.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-6 space-y-4">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                <h2 className="text-lg font-semibold text-slate-800 mb-4">Menu Cepat</h2>
               <div className="space-y-3">
                 <Link
                   href="/dashboard/guru/presensi"
@@ -163,17 +175,17 @@ export default function GuruDashboardPage() {
                   href="/dashboard/guru/setoran"
                   className="block w-full text-left bg-sky-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-sky-700 transition"
                 >
-                  Catatan Tahsin & Tahfidz
+                  Catatan Tahsin &amp; Tahfidz
                 </Link>
                 <Link
                   href="/dashboard/guru/materials"
-                  className="block w-full text-left bg-teal-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-teal-700 transition"
+                  className="block w-full text-left bg-amber-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-amber-700 transition"
                 >
                   Upload Materi
                 </Link>
                 <Link
                   href="/dashboard/guru/promotions"
-                  className="block w-full text-left bg-amber-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-amber-700 transition"
+                  className="block w-full text-left bg-violet-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-violet-700 transition"
                 >
                   Persetujuan Kenaikan
                 </Link>
@@ -185,14 +197,14 @@ export default function GuruDashboardPage() {
                 </Link>
                 <Link
                   href="/dashboard/guru/mutabaah"
-                  className="block w-full text-left bg-violet-600 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-violet-700 transition"
+                  className="block w-full text-left bg-slate-700 text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-800 transition"
                 >
                   Cetak Mutaba&apos;ah
                 </Link>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-slate-700 mb-3">Info Guru</h2>
               <p className="text-sm text-slate-600">Level Guru: <span className="font-semibold text-slate-800">{teacherLevel}</span></p>
               <p className="text-sm text-slate-600 mt-2">
@@ -203,16 +215,6 @@ export default function GuruDashboardPage() {
         </aside>
 
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
-              <p className="text-sm text-slate-600">
-                {teacherLevel >= 3
-                  ? 'Menampilkan seluruh siswa (Supervisor Level 3)'
-                  : 'Kelola perkembangan dan presensi siswa bimbingan Anda.'}
-              </p>
-            </div>
-          </div>
 
           <div className="flex flex-wrap gap-3 lg:hidden">
             <Link
@@ -225,17 +227,17 @@ export default function GuruDashboardPage() {
               href="/dashboard/guru/setoran"
               className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
             >
-              Catatan Tahsin & Tahfidz
+              Catatan Tahsin &amp; Tahfidz
             </Link>
             <Link
               href="/dashboard/guru/materials"
-              className="bg-teal-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition shadow-sm"
+              className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
             >
               Upload Materi
             </Link>
             <Link
               href="/dashboard/guru/promotions"
-              className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
+              className="bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition shadow-sm"
             >
               Persetujuan Kenaikan
             </Link>
@@ -247,13 +249,13 @@ export default function GuruDashboardPage() {
             </Link>
             <Link
               href="/dashboard/guru/mutabaah"
-              className="bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition shadow-sm"
+              className="bg-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition shadow-sm"
             >
               📄 Cetak Mutaba&apos;ah
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
               <h2 className="font-semibold text-slate-700">Daftar Santri Bimbingan</h2>
               <span className="text-xs bg-slate-200 text-slate-700 font-medium px-2.5 py-1 rounded-full">
@@ -313,6 +315,7 @@ export default function GuruDashboardPage() {
               </table>
             )}
           </div>
+        </div>
         </div>
       </div>
 

@@ -57,8 +57,10 @@ export default async function CetakMutabaahPage({
 
   if (!studentId) {
     return (
-      <div className="p-8 text-center text-rose-600 font-semibold">
-        ID santri tidak diberikan.
+      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+        <div className="mx-auto max-w-4xl rounded-xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-semibold text-rose-600">ID santri tidak diberikan.</p>
+        </div>
       </div>
     );
   }
@@ -80,9 +82,11 @@ export default async function CetakMutabaahPage({
 
     if (!student && (!submissions || submissions.length === 0)) {
       return (
-        <div className="p-8 text-center text-rose-600">
-          <p className="font-semibold">Data santri tidak ditemukan.</p>
-          <p className="mt-1 text-xs font-mono text-slate-500">ID: {studentId}</p>
+        <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+          <div className="mx-auto max-w-4xl rounded-xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+            <p className="font-semibold text-rose-600">Data santri tidak ditemukan.</p>
+            <p className="mt-1 text-xs font-mono text-slate-500">ID: {studentId}</p>
+          </div>
         </div>
       );
     }
@@ -177,16 +181,30 @@ export default async function CetakMutabaahPage({
     };
 
     return (
-      <div className="bg-white min-h-screen p-4 md:p-8 max-w-4xl mx-auto print:p-0 print:max-w-full">
-        <PrintControls />
-        <PrintTemplate data={data} program={program} />
+      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+        <div className="mx-auto max-w-5xl space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <div>
+              <p className="text-sm font-medium text-emerald-600">Mutaba&apos;ah Santri</p>
+              <h1 className="mt-1 text-2xl font-bold text-slate-800">Cetak Laporan Perkembangan</h1>
+              <p className="mt-1 text-sm text-slate-500">Dokumen cetak mengikuti format admin agar tampilan konsisten antar halaman guru.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm print:p-0 print:border-0 print:shadow-none">
+            <PrintControls />
+            <PrintTemplate data={data} program={program} />
+          </div>
+        </div>
       </div>
     );
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     return (
-      <div className="p-8 text-center text-rose-600 font-semibold">
-        Terjadi kesalahan saat mengambil data: {errorMsg}
+      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+        <div className="mx-auto max-w-4xl rounded-xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-semibold text-rose-600">Terjadi kesalahan saat mengambil data: {errorMsg}</p>
+        </div>
       </div>
     );
   }

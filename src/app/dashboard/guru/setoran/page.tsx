@@ -77,19 +77,19 @@ export default function InputSetoranPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      {/* Header & Tombol Kembali */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Catatan Tahsin & Tahfidz</h1>
-        <Link 
-          href="/dashboard/guru" 
-          className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition"
-        >
-          &larr; Kembali ke Dashboard
-        </Link>
-      </div>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+          <div>
+            <Link href="/dashboard/guru" className="text-sm text-emerald-600 font-medium hover:underline">
+              &larr; Kembali ke Dashboard Guru
+            </Link>
+            <h1 className="text-2xl font-bold text-slate-800 mt-1">Catatan Tahsin &amp; Tahfidz</h1>
+            <p className="text-sm text-slate-500">Input setoran harian untuk seluruh siswa bimbingan.</p>
+          </div>
+        </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Pilih Santri</label>
           <select
@@ -206,11 +206,12 @@ export default function InputSetoranPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-sky-600 text-white py-2.5 rounded-lg font-medium hover:bg-sky-700 transition"
+          className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition"
         >
           {loading ? 'Mencatat...' : 'Simpan Catatan Setoran'}
         </button>
       </form>
+      </div>
     </div>
   );
 }

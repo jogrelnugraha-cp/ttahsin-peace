@@ -146,11 +146,11 @@ export default function GuruStudentReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-4xl space-y-6">
 
         {/* Navigasi Header */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href="/dashboard/guru" className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; Kembali ke Dashboard Guru
@@ -217,7 +217,7 @@ export default function GuruStudentReportsPage() {
             <button
               type="submit"
               disabled={submitting || !studentId}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               {submitting ? 'Mengirim Laporan...' : '⚠️ Kirim Laporan Kendala'}
             </button>

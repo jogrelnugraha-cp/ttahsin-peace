@@ -10,11 +10,11 @@ export default function PrintControls() {
   };
 
   return (
-    <div className="mb-6 flex justify-between items-center print:hidden bg-slate-100 p-4 rounded-lg">
+    <div className="mb-6 flex flex-col gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm print:hidden sm:flex-row sm:items-center sm:justify-between">
       <span className="text-sm text-slate-700">Pastikan data sudah sesuai sebelum mencetak.</span>
       <button
         onClick={handlePrint}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg text-sm transition"
+        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition shadow-sm"
       >
         🖨️ Cetak / Simpan PDF
       </button>

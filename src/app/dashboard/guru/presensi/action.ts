@@ -7,9 +7,23 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export interface PresensiItem {
   student_id: string;
-  status: 'none' | 'hadir' | 'izin' | 'sakit' | 'alfa' | 'libur';
-  catatan?: string;
-  tanggal?: string;
+  status: 'none' | 'hadir' | 'izin' | 'sakit' | 'alpha';
+  notes?: string;
+  attendance_date?: string;
+}
+
+function normalizeAttendanceStatus(status?: string): PresensiItem['status'] {
+  const normalized = String(status ?? 'hadir').trim().toLowerCase();
+
+  if (normalized === 'alpa') {
+    return 'alpha';
+  }
+
+  if (normalized === 'hadir' || normalized === 'izin' || normalized === 'sakit' || normalized === 'alpha') {
+    return normalized;
+  }
+
+  return 'hadir';
 }
 
 async function createPresensiServerClient() {
@@ -33,21 +47,51 @@ export async function getExistingPresensiForRange(startDate: string, endDate: st
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return [];
+  let userId = user?.id;
 
-  const { data, error } = await supabase
-    .from('presensi')
-    .select('student_id, tanggal, status, catatan')
-    .eq('guru_id', user.id)
-    .gte('tanggal', startDate)
-    .lte('tanggal', endDate)
-    .order('tanggal', { ascending: true });
-
-  if (error) {
-    throw new Error(`Gagal memuat absensi: ${error.message}`);
+  if (!userId) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    userId = sessionData?.session?.user?.id;
   }
 
-  return (data || []) as Array<PresensiItem & { tanggal: string }>;
+  const db = userId ? supabase : supabaseAdmin;
+
+  const normalizeEntries = (rows: Array<Record<string, unknown>>) =>
+    (rows || [])
+      .map((row) => {
+        const studentId = String(row.student_id ?? '');
+        const dateValue = String(row.attendance_date ?? row.date ?? row.tanggal ?? '');
+        const statusValue = normalizeAttendanceStatus(String(row.status ?? 'hadir'));
+        const notesValue = String(row.notes ?? row.catatan ?? '');
+
+        if (!studentId || !dateValue) return null;
+
+        return {
+          student_id: studentId,
+          attendance_date: dateValue,
+          status: statusValue,
+          notes: notesValue,
+        } satisfies PresensiItem & { attendance_date: string };
+      })
+      .filter(Boolean) as Array<PresensiItem & { attendance_date: string }>;
+
+  try {
+    const { data: attendanceRows, error: attendanceError } = await db
+      .from('attendances')
+      .select('student_id, attendance_date, status, notes')
+      .gte('attendance_date', startDate)
+      .lte('attendance_date', endDate)
+      .order('attendance_date', { ascending: true });
+
+    if (attendanceError) {
+      throw new Error(`Gagal memuat absensi: ${attendanceError.message}`);
+    }
+
+    return normalizeEntries(attendanceRows || []);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat absensi.';
+    throw new Error(message);
+  }
 }
 
 export async function submitPeriodPresensi(records: PresensiItem[]) {
@@ -80,30 +124,24 @@ export async function submitPeriodPresensi(records: PresensiItem[]) {
       return { success: true, message: 'Tidak ada perubahan presensi yang disimpan.' };
     }
 
-    // Prepare payload data
+    // Prepare payload data sesuai skema tabel attendances yang benar-benar dipakai UI
     const payload = validRecords.map((item) => ({
       student_id: item.student_id,
-      status: item.status,
-      catatan: item.catatan || '',
-      date: item.tanggal || new Date().toISOString().split('T')[0],
-      created_by: userId || null,
+      attendance_date: item.attendance_date || new Date().toISOString().split('T')[0],
+      status: normalizeAttendanceStatus(item.status),
+      notes: item.notes || '',
     }));
 
-    // Upsert ke database
     const { error: insertError } = await db
       .from('attendances')
-      .upsert(payload, { onConflict: 'student_id,date' });
+      .upsert(payload, { onConflict: 'student_id,attendance_date' });
 
     if (insertError) {
-      // Fallback jika tabel di DB bernama 'presensi'
-      const { error: fallbackError } = await db
-        .from('presensi')
-        .upsert(payload, { onConflict: 'student_id,date' });
-
-      if (fallbackError) {
-        console.error('[Presensi Action Error]:', insertError || fallbackError);
-        return { success: false, error: insertError.message || fallbackError.message };
-      }
+      console.error('[Presensi Action Error]:', insertError);
+      return {
+        success: false,
+        error: insertError.message || 'Gagal menyimpan absensi.',
+      };
     }
 
     // Refresh halaman presensi

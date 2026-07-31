@@ -183,27 +183,25 @@ export default function PromotionsPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Persetujuan Kenaikan Tingkat</h1>
-          <p className="text-sm text-slate-600">
-            {currentTeacher ? (
-              <span>
-                Anda terhubung sebagai <strong className="text-emerald-700">{currentTeacher.full_name}</strong> (Guru Level {currentTeacher.teacher_level})
-              </span>
-            ) : (
-              'Memuat profil guru...'
-            )}
-          </p>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+          <div>
+            <Link href="/dashboard/guru" className="text-sm text-emerald-600 font-medium hover:underline">
+              &larr; Kembali ke Dashboard Guru
+            </Link>
+            <h1 className="text-2xl font-bold text-slate-800 mt-1">Persetujuan Kenaikan Tingkat</h1>
+            <p className="text-sm text-slate-600">
+              {currentTeacher ? (
+                <span>
+                  Anda terhubung sebagai <strong className="text-emerald-700">{currentTeacher.full_name}</strong> (Guru Level {currentTeacher.teacher_level})
+                </span>
+              ) : (
+                'Memuat profil guru...'
+              )}
+            </p>
+          </div>
         </div>
-        <Link
-          href="/dashboard/guru"
-          className="text-xs bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-2 rounded-lg font-medium border transition"
-        >
-          ← Kembali ke Dashboard
-        </Link>
-      </div>
 
       {/* Info Alur */}
       <div className="p-4 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-800 space-y-1">
@@ -216,7 +214,7 @@ export default function PromotionsPage() {
       </div>
 
       {/* Daftar Pengajuan */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
           <h2 className="font-semibold text-slate-700 text-sm">Daftar Pengajuan Kenaikan Level</h2>
           <span className="text-xs bg-slate-200 text-slate-700 font-semibold px-2.5 py-1 rounded-full">
@@ -313,6 +311,7 @@ export default function PromotionsPage() {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

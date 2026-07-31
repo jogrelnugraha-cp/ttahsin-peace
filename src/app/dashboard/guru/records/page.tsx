@@ -177,16 +177,16 @@ export default function GuruDailyRecordsPage() {
   const selectedStudentInfo = students.find((s) => s.id === studentId);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         
         {/* Header Navigasi */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href="/dashboard/guru" className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; Kembali ke Dashboard Guru
             </Link>
-            <h1 className="text-2xl font-bold text-slate-800 mt-1">Absensi & Capaian Harian</h1>
+            <h1 className="text-2xl font-bold text-slate-800 mt-1">Absensi &amp; Capaian Harian</h1>
             <p className="text-slate-500 text-sm">Input kehadiran dan perkembangan mutabaah Tahsin/Tahfidz santri.</p>
           </div>
         </div>

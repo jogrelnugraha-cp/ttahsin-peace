@@ -135,11 +135,11 @@ export default function GuruMaterialsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-4xl space-y-6">
         
         {/* Header Navigasi */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <Link href={backUrl} className="text-sm text-emerald-600 font-medium hover:underline">
               &larr; {backLabel}

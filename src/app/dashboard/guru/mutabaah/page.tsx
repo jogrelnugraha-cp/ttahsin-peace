@@ -79,7 +79,7 @@ export default function GuruMutabaahPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <Link href="/dashboard/guru" className="text-sm text-emerald-600 font-medium hover:underline">
             &larr; Kembali ke Dashboard Guru
@@ -119,7 +119,7 @@ export default function GuruMutabaahPage() {
                 </button>
                 <button
                   onClick={() => handlePrint('Tahfidz')}
-                  className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-xl font-semibold text-sm transition border border-slate-200"
                 >
                   📖 Cetak Mutaba&apos;ah Tahfidz
                 </button>
