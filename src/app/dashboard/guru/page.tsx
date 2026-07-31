@@ -216,43 +216,62 @@ export default function GuruDashboardPage() {
 
         <div className="space-y-6">
 
-          <div className="flex flex-wrap gap-3 lg:hidden">
-            <Link
-              href="/dashboard/guru/presensi"
-              className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
-            >
-              Kelola Presensi
-            </Link>
-            <Link
-              href="/dashboard/guru/setoran"
-              className="bg-sky-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition shadow-sm"
-            >
-              Catatan Tahsin &amp; Tahfidz
-            </Link>
-            <Link
-              href="/dashboard/guru/materials"
-              className="bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 transition shadow-sm"
-            >
-              Upload Materi
-            </Link>
-            <Link
-              href="/dashboard/guru/promotions"
-              className="bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition shadow-sm"
-            >
-              Persetujuan Kenaikan
-            </Link>
-            <Link
-              href="/dashboard/guru/reports"
-              className="bg-rose-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-rose-700 transition shadow-sm"
-            >
-              Laporan Kendala
-            </Link>
-            <Link
-              href="/dashboard/guru/mutabaah"
-              className="bg-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition shadow-sm"
-            >
-              📄 Cetak Mutaba&apos;ah
-            </Link>
+          <div className="space-y-4 lg:hidden">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Menu Cepat</h2>
+              <div className="grid grid-cols-1 gap-3">
+                <Link
+                  href="/dashboard/guru/presensi"
+                  className="inline-flex items-center gap-3 w-full text-left bg-emerald-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-emerald-700 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">📋</span>
+                  <span>Kelola Presensi</span>
+                </Link>
+                <Link
+                  href="/dashboard/guru/setoran"
+                  className="inline-flex items-center gap-3 w-full text-left bg-sky-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-sky-700 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">📝</span>
+                  <span>Catatan Tahsin &amp; Tahfidz</span>
+                </Link>
+                <Link
+                  href="/dashboard/guru/materials"
+                  className="inline-flex items-center gap-3 w-full text-left bg-amber-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-amber-700 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">📤</span>
+                  <span>Upload Materi</span>
+                </Link>
+                <Link
+                  href="/dashboard/guru/promotions"
+                  className="inline-flex items-center gap-3 w-full text-left bg-violet-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-violet-700 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">⤴️</span>
+                  <span>Persetujuan Kenaikan</span>
+                </Link>
+                <Link
+                  href="/dashboard/guru/reports"
+                  className="inline-flex items-center gap-3 w-full text-left bg-rose-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-rose-700 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">⚠️</span>
+                  <span>Laporan Kendala</span>
+                </Link>
+                <Link
+                  href="/dashboard/guru/mutabaah"
+                  className="inline-flex items-center gap-3 w-full text-left bg-slate-700 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 transition shadow-sm"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-base">🖨️</span>
+                  <span>Cetak Mutaba&apos;ah</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-slate-700 mb-3">Info Guru</h2>
+              <p className="text-sm text-slate-600">Level Guru: <span className="font-semibold text-slate-800">{teacherLevel}</span></p>
+              <p className="text-sm text-slate-600 mt-2">
+                {teacherLevel >= 3 ? 'Supervisor Level 3: lihat semua siswa.' : 'Kelola perkembangan siswa bimbingan Anda.'}
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
