@@ -40,12 +40,36 @@ input, select, textarea {
     print-color-adjust: exact;
   }
 
-  .print-hidden {
+  /* Hide application chrome and helper classes during print */
+  header, nav, .print-hidden, .no-print, .no-print * {
     display: none !important;
   }
 
-  /* Cegah pemotongan halaman tidak sengaja */
+  /* Allow print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Make tables and blocks avoid page breaks inside */
   div, table {
     page-break-inside: avoid;
+  }
+}
+
+/* Mobile responsiveness helpers */
+@media (max-width: 640px) {
+  /* Make wide tables scrollable on small screens */
+  table {
+    display: block;
+    width: 100% !important;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure large containers fit within viewport */
+  .max-w-5xl, .max-w-7xl {
+    max-width: 100% !important;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 }

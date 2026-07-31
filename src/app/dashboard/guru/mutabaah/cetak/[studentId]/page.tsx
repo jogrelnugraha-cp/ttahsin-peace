@@ -4,7 +4,7 @@ import PrintTemplate from '../PrintTemplate';
 
 interface TahsinRecord {
   id: string;
-  jilid: string;
+  Materi: string;
   halaman: number;
   nilai: string;
   tanggal: string;
@@ -153,7 +153,7 @@ export default async function CetakMutabaahPage({
       .filter((s) => s.submission_type === 'tahsin')
       .map((s) => ({
         id: s.id,
-        jilid: s.surah_or_juz || '-',
+        Materi: s.Mad_or_Ghunnah || '-',
         halaman: parseInt(s.page_or_verse) || 0,
         nilai: s.notes || '-',
         tanggal: formatDate(s.created_at),
@@ -173,7 +173,7 @@ export default async function CetakMutabaahPage({
       id: student?.id || studentId,
       full_name: student?.full_name || 'Tanpa Nama',
       nis: student?.nis || '-',
-      tahsin_level: student?.tahsin_level || 'Jilid 1',
+      tahsin_level: student?.tahsin_level || 'Level 1',
       tahfidz_level: student?.tahfidz_level || 'Juz 30',
       pembimbing_name: pembimbingName,
       setoran_tahsin: tahsinSubmissions,
@@ -181,22 +181,17 @@ export default async function CetakMutabaahPage({
     };
 
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-        <div className="mx-auto max-w-5xl space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <div>
-              <p className="text-sm font-medium text-emerald-600">Mutaba&apos;ah Santri</p>
-              <h1 className="mt-1 text-2xl font-bold text-slate-800">Cetak Laporan Perkembangan</h1>
-              <p className="mt-1 text-sm text-slate-500">Dokumen cetak mengikuti format admin agar tampilan konsisten antar halaman guru.</p>
+      <>
+        <style>{`@media print { header, nav, .print-hidden, .no-print { display:none !important; } body { margin:0 !important; } }`}</style>
+        <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm print:p-0 print:border-0 print:shadow-none">
+              <PrintControls />
+              <PrintTemplate data={data} program={program} />
             </div>
           </div>
-
-          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm print:p-0 print:border-0 print:shadow-none">
-            <PrintControls />
-            <PrintTemplate data={data} program={program} />
-          </div>
         </div>
-      </div>
+      </>
     );
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);

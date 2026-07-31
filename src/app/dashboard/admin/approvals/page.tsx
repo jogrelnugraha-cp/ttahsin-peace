@@ -12,6 +12,7 @@ interface PromotionRequest {
   target_level: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  teacher_id?: string | null;
   student?: { full_name: string } | null;
   guru?: { full_name: string } | null;
 }
@@ -27,6 +28,7 @@ interface StudentReport {
 
 export default function AdminApprovalsPage() {
   const [promotions, setPromotions] = useState<PromotionRequest[]>([]);
+  const [promotionTableName, setPromotionTableName] = useState<'promotion_requests' | 'level_promotions'>('promotion_requests');
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -34,12 +36,45 @@ export default function AdminApprovalsPage() {
   const reloadData = async () => {
     setLoading(true);
 
-    const { data: promoData } = await supabase
-      .from('level_promotions')
-      .select('*, student:student_id(full_name), guru:guru_id(full_name)')
-      .order('created_at', { ascending: false });
+    let promoData: any[] | null = null;
+    const promotionTableCandidates = ['promotion_requests', 'level_promotions'] as const;
 
-    if (promoData) setPromotions(promoData as unknown as PromotionRequest[]);
+    for (const tableName of promotionTableCandidates) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error) {
+        promoData = data || [];
+        setPromotionTableName(tableName);
+        setPromotionTableName(tableName);
+        break;
+      }
+
+      const message = String(error.message || '').toLowerCase();
+      const isMissingTable = message.includes('could not find the table') || message.includes('does not exist');
+      if (!isMissingTable) {
+        break;
+      }
+    }
+
+    if (promoData) {
+      setPromotions(
+        promoData.map((item) => ({
+          id: item.id,
+          student_id: item.student_id,
+          category: item.category || (item.type === 'tahfidz' ? 'Tahfidz' : 'Tahsin'),
+          current_level: item.current_level || '',
+          target_level: item.target_level,
+          status: item.status,
+          created_at: item.created_at,
+          teacher_id: item.teacher_id || item.guru_id,
+          student: item.student ? item.student : undefined,
+          guru: item.guru ? item.guru : item.teacher ? item.teacher : undefined,
+        })) as PromotionRequest[]
+      );
+    }
 
     const { data: reportData } = await supabase
       .from('student_reports')
@@ -55,12 +90,43 @@ export default function AdminApprovalsPage() {
     const initData = async () => {
       setLoading(true);
 
-      const { data: promoData } = await supabase
-        .from('level_promotions')
-        .select('*, student:student_id(full_name), guru:guru_id(full_name)')
-        .order('created_at', { ascending: false });
+      let promoData: any[] | null = null;
+      const promotionTableCandidates = ['promotion_requests', 'level_promotions'];
 
-      if (promoData) setPromotions(promoData as unknown as PromotionRequest[]);
+      for (const tableName of promotionTableCandidates) {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error) {
+          promoData = data || [];
+          break;
+        }
+
+        const message = String(error.message || '').toLowerCase();
+        const isMissingTable = message.includes('could not find the table') || message.includes('does not exist');
+        if (!isMissingTable) {
+          break;
+        }
+      }
+
+      if (promoData) {
+        setPromotions(
+          promoData.map((item) => ({
+            id: item.id,
+            student_id: item.student_id,
+            category: item.category || (item.type === 'tahfidz' ? 'Tahfidz' : 'Tahsin'),
+            current_level: item.current_level || '',
+            target_level: item.target_level,
+            status: item.status,
+            created_at: item.created_at,
+            teacher_id: item.teacher_id || item.guru_id,
+            student: item.student ? item.student : undefined,
+            guru: item.guru ? item.guru : item.teacher ? item.teacher : undefined,
+          })) as PromotionRequest[]
+        );
+      }
 
       const { data: reportData } = await supabase
         .from('student_reports')
@@ -80,26 +146,55 @@ export default function AdminApprovalsPage() {
 
     try {
       if (status === 'approved') {
-        // 1. Update level santri di tabel profiles
-        const updatePayload = promo.category === 'Tahsin'
-          ? { tahsin_level: promo.target_level }
-          : { tahfidz_level: promo.target_level };
-
+        const updateField = promo.category === 'Tahsin' ? 'tahsin_level' : 'tahfidz_level';
+        const approverId = promo.teacher_id ?? null;
         const { error: profileError } = await supabase
           .from('profiles')
-          .update(updatePayload)
+          .update({
+            [updateField]: promo.target_level,
+            pembimbing_id: approverId,
+            teacher_id: approverId,
+          })
           .eq('id', promo.student_id);
 
         if (profileError) throw profileError;
       }
 
-      // 2. Update status di tabel level_promotions
-      const { error: promoError } = await supabase
-        .from('level_promotions')
+      let promotionUpdateError: { message: string } | null = null;
+      const primaryTable = promotionTableName;
+      const fallbackTable = primaryTable === 'promotion_requests' ? 'level_promotions' : 'promotion_requests';
+
+      const { error: primaryError } = await supabase
+        .from(primaryTable)
         .update({ status })
         .eq('id', promo.id);
 
-      if (promoError) throw promoError;
+      if (!primaryError) {
+        promotionUpdateError = null;
+      } else {
+        const message = String(primaryError.message || '').toLowerCase();
+        const isMissingTable = message.includes('could not find the table') || message.includes('does not exist');
+
+        if (isMissingTable) {
+          const { error: fallbackError } = await supabase
+            .from(fallbackTable)
+            .update({ status })
+            .eq('id', promo.id);
+
+          if (!fallbackError) {
+            promotionUpdateError = null;
+            setPromotionTableName(fallbackTable);
+          } else {
+            promotionUpdateError = fallbackError;
+          }
+        } else {
+          promotionUpdateError = primaryError;
+        }
+      }
+
+      if (promotionUpdateError) {
+        throw promotionUpdateError;
+      }
 
       alert(`Pengajuan berhasil di-${status === 'approved' ? 'setujui' : 'tolak'}!`);
       reloadData();

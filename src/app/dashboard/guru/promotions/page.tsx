@@ -34,6 +34,7 @@ interface ProfileSummary {
 export default function PromotionsPage() {
   const [currentTeacher, setCurrentTeacher] = useState<CurrentTeacher | null>(null);
   const [requests, setRequests] = useState<PromotionRequest[]>([]);
+  const [requestTableName, setRequestTableName] = useState<'promotion_requests' | 'level_promotions'>('promotion_requests');
   const [loading, setLoading] = useState<boolean>(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
@@ -44,11 +45,9 @@ export default function PromotionsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // 1. Dapatkan user session
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // 2. Ambil profil guru login
         const { data: teacherProfile } = await supabase
           .from('profiles')
           .select('id, full_name, teacher_level')
@@ -64,14 +63,40 @@ export default function PromotionsPage() {
           teacher_level: myLevel,
         });
 
-        // 3. Ambil seluruh data pengajuan kenaikan level
-        const { data: rawRequests, error: requestsError } = await supabase
-          .from('promotion_requests')
-          .select('*')
-          .order('created_at', { ascending: false });
+        let rawRequests: Array<Record<string, any>> | null = null;
+        let requestTableUsed = 'promotion_requests';
 
-        if (requestsError) {
-          console.warn('Tidak dapat memuat pengajuan dengan join, tampilkan data kosong.', requestsError);
+        const tableCandidates = ['promotion_requests', 'level_promotions'] as const;
+        for (const tableName of tableCandidates) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!error) {
+            rawRequests = data || [];
+            requestTableUsed = tableName;
+            setRequestTableName(tableName);
+            break;
+          }
+
+          const message = String(error.message || '').toLowerCase();
+          const code = String((error as any)?.code || '').toLowerCase();
+          const status = String((error as any)?.status || '').toLowerCase();
+          const isMissingTable =
+            message.includes('could not find the table') ||
+            message.includes('does not exist') ||
+            message.includes('not found') ||
+            message.includes('404') ||
+            code === '42p01' ||
+            code === '404' ||
+            status === '404';
+          if (!isMissingTable) {
+            throw error;
+          }
+        }
+
+        if (!rawRequests) {
           setRequests([]);
           return;
         }
@@ -79,7 +104,7 @@ export default function PromotionsPage() {
         if (!isMounted) return;
 
         const studentIds = [...new Set((rawRequests || []).map((item) => item.student_id).filter(Boolean))] as string[];
-        const teacherIds = [...new Set((rawRequests || []).map((item) => item.teacher_id).filter(Boolean))] as string[];
+        const teacherIds = [...new Set((rawRequests || []).map((item) => item.teacher_id || item.guru_id).filter(Boolean))] as string[];
 
         const [studentProfilesResult, teacherProfilesResult] = await Promise.all([
           studentIds.length > 0
@@ -94,15 +119,18 @@ export default function PromotionsPage() {
         const teacherMap = new Map<string, ProfileSummary>((teacherProfilesResult.data || []).map((profile) => [profile.id, profile]));
 
         const formatted: PromotionRequest[] = (rawRequests || []).map((item) => {
+          const teacherId = item.teacher_id || item.guru_id || '';
+          const type = (item.type || item.category || 'Tahsin').toString().toLowerCase();
+          const normalizedType = type === 'tahfidz' ? 'tahfidz' : 'tahsin';
           const studentProfile = studentMap.get(item.student_id);
-          const teacherProfile = teacherMap.get(item.teacher_id);
+          const teacherProfile = teacherMap.get(teacherId);
 
           return {
             id: item.id,
             student_id: item.student_id,
-            teacher_id: item.teacher_id,
-            type: item.type as 'tahsin' | 'tahfidz',
-            current_level: item.current_level,
+            teacher_id: teacherId,
+            type: normalizedType as 'tahsin' | 'tahfidz',
+            current_level: item.current_level || '',
             target_level: item.target_level,
             notes: item.notes,
             status: item.status as 'pending' | 'approved' | 'rejected',
@@ -116,19 +144,15 @@ export default function PromotionsPage() {
           };
         });
 
-        // 4. Filter data berdasarkan Hirarki Level Guru
         let filteredRequests: PromotionRequest[] = [];
 
         if (myLevel === 1) {
-          // Guru Level 1: Hanya melihat pengajuan yang dibuat oleh dirinya sendiri
           filteredRequests = formatted.filter((r) => r.teacher_id === session.user.id);
         } else if (myLevel === 2) {
-          // Guru Level 2: Meninjau pengajuan dari Guru Level 1 + melihat pengajuan buatannya sendiri
           filteredRequests = formatted.filter(
             (r) => (r.teacher?.teacher_level === 1) || (r.teacher_id === session.user.id)
           );
         } else if (myLevel >= 3) {
-          // Guru Level 3: Meninjau pengajuan dari Guru Level 2 (serta Level 1 jika ada)
           filteredRequests = formatted;
         }
 
@@ -153,27 +177,21 @@ export default function PromotionsPage() {
   const handleAction = async (request: PromotionRequest, newStatus: 'approved' | 'rejected') => {
     setProcessingId(request.id);
     try {
-      // Update status di promotion_requests
-      const { error: reqError } = await supabase
-        .from('promotion_requests')
-        .update({ status: newStatus })
-        .eq('id', request.id);
-
-      if (reqError) throw reqError;
-
-      // Jika disetujui, update level santri di tabel profiles
-      if (newStatus === 'approved') {
-        const updateField = request.type === 'tahsin' ? 'tahsin_level' : 'tahfidz_level';
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ [updateField]: request.target_level })
-          .eq('id', request.student_id);
-
-        if (profileError) throw profileError;
+      const res = await fetch('/api/promotions/handle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ id: request.id, action: newStatus === 'approved' ? 'approve' : 'reject' }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json?.error || 'Gagal memproses pengajuan');
       }
 
-      alert(`Pengajuan berhasil di-${newStatus === 'approved' ? 'setujui' : 'tolak'}!`);
+      // Optimistically update local UI so the change is visible immediately
+      setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, status: newStatus } : r)));
       setRefreshKey((prev) => prev + 1);
+      alert(`Pengajuan berhasil di-${newStatus === 'approved' ? 'setujui' : 'tolak'}!`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan';
       alert(`Gagal memproses pengajuan: ${msg}`);

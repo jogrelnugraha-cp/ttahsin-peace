@@ -85,7 +85,7 @@ export default function PrintTemplate({ data, program }: PrintTemplateProps) {
               <tr className="bg-slate-100 print:bg-slate-200 text-slate-900 font-bold">
                 <th className="border border-slate-400 py-1 px-1.5 text-center w-8">No</th>
                 <th className="border border-slate-400 py-1 px-1.5 text-center w-20">Tanggal</th>
-                <th className="border border-slate-400 py-1 px-1.5 text-center w-20">Jilid</th>
+                <th className="border border-slate-400 py-1 px-1.5 text-center w-20">Materi</th>
                 <th className="border border-slate-400 py-1 px-1.5 text-center w-16">Halaman</th>
                 <th className="border border-slate-400 py-1 px-1.5 text-left">Catatan / Nilai</th>
               </tr>
@@ -102,7 +102,7 @@ export default function PrintTemplate({ data, program }: PrintTemplateProps) {
                   <tr key={item.id || idx}>
                     <td className="border border-slate-300 py-1 px-1.5 text-center">{idx + 1}</td>
                     <td className="border border-slate-300 py-1 px-1.5 text-center">{item.tanggal}</td>
-                    <td className="border border-slate-300 py-1 px-1.5 text-center font-medium">{item.jilid}</td>
+                    <td className="border border-slate-300 py-1 px-1.5 text-center font-medium">{item.Materi}</td>
                     <td className="border border-slate-300 py-1 px-1.5 text-center">{item.halaman}</td>
                     <td className="border border-slate-300 py-1 px-1.5">{item.nilai}</td>
                   </tr>
